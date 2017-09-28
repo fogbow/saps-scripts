@@ -27,7 +27,6 @@ public class USGSNasaRepositoryTest {
     private String usgsPassword;
     private String usgsLoginUrl;
     private String usgsJsonUrl;
-    private String usgsAPIPeriod;
     private String sebalExportPath;
     private String sebalResultsPath;
 
@@ -40,7 +39,6 @@ public class USGSNasaRepositoryTest {
         usgsPassword = "fake-password";
         usgsLoginUrl = "fake-login-url";
         usgsJsonUrl = "https://earthexplorer.usgs.gov/inventory/json";
-        usgsAPIPeriod = "10000";
         sebalExportPath = "/tmp";
         sebalResultsPath = "/tmp/results";
     }
@@ -68,7 +66,7 @@ public class USGSNasaRepositoryTest {
         doReturn(new Header[0]).when(httpResponse).getAllHeaders();
 
         USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(
-                sebalExportPath, usgsLoginUrl, usgsJsonUrl, usgsUserName,
+                sebalExportPath, usgsJsonUrl, usgsUserName,
                 usgsPassword));
 
         doReturn(content).when(usgsNasaRepository).getLoginResponse();
@@ -84,7 +82,7 @@ public class USGSNasaRepositoryTest {
     @Test (expected = MalformedURLException.class)
     public void testMalFormedURLDownload() throws Exception {
         USGSNasaRepository usgsNasaRepository = new USGSNasaRepository(
-                sebalExportPath, usgsLoginUrl, usgsJsonUrl, usgsUserName,
+                sebalExportPath, usgsJsonUrl, usgsUserName,
                 usgsPassword);
         usgsNasaRepository.handleAPIKeyUpdate();
 
@@ -98,7 +96,7 @@ public class USGSNasaRepositoryTest {
     public void testUnknownImageTaskName() throws Exception {
         String urlToBeTested = "http://www.google.com/invalidURL";
         USGSNasaRepository usgsNasaRepository = new USGSNasaRepository(
-                sebalExportPath, usgsLoginUrl, usgsJsonUrl, usgsUserName,
+                sebalExportPath, usgsJsonUrl, usgsUserName,
                 usgsPassword);
         usgsNasaRepository.handleAPIKeyUpdate();
         ImageTask imageTask = spy(new ImageTask("collectionTierName", "unknownName"));
@@ -133,7 +131,7 @@ public class USGSNasaRepositoryTest {
         String expectedDownloadLink = "https://dds.cr.usgs.gov/ltaauth/hsm/lta3/lsat_ortho/gls_1975/046/034/p046r034_1x19720725.tar.gz?id=erjal92rc4o2070t76uqbispk4&iid=P046R034_1X19720725&did=338419617&ver=production";
 
         USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(
-                sebalResultsPath, usgsLoginUrl, usgsJsonUrl, usgsUserName,
+                sebalResultsPath, usgsJsonUrl, usgsUserName,
                 usgsPassword));
 
         doReturn(fakeDownloadResponse).when(usgsNasaRepository).getDownloadHttpResponse(anyString(),anyString(),anyString(),anyString());

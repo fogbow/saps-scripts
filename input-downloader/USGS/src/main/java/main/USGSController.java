@@ -4,6 +4,7 @@ import core.USGSNasaRepository;
 import model.ImageTask;
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -67,7 +68,7 @@ public class USGSController {
         Properties props = new Properties();
         FileInputStream input;
         try {
-            input = new FileInputStream("config/sebal.conf");
+            input = new FileInputStream(System.getProperty("user.dir") + File.separator + "execs/config/sebal.conf");
             props.load(input);
         } catch (FileNotFoundException e) {
             LOGGER.error("Error while reading conf file", e);

@@ -42,7 +42,6 @@ public class USGSNasaRepository implements Repository {
 
     public USGSNasaRepository(Properties properties) {
         this(properties.getProperty(PropertiesConstants.SEBAL_RESULTS_PATH),
-                properties.getProperty(PropertiesConstants.USGS_LOGIN_URL),
                 properties.getProperty(PropertiesConstants.USGS_JSON_URL),
                 properties.getProperty(PropertiesConstants.USGS_USERNAME),
                 properties.getProperty(PropertiesConstants.USGS_PASSWORD));
@@ -50,19 +49,17 @@ public class USGSNasaRepository implements Repository {
 
     public USGSNasaRepository(String sebalResultsPath, Properties properties) {
         this(sebalResultsPath,
-                properties.getProperty(PropertiesConstants.USGS_LOGIN_URL),
                 properties.getProperty(PropertiesConstants.USGS_JSON_URL),
                 properties.getProperty(PropertiesConstants.USGS_USERNAME),
                 properties.getProperty(PropertiesConstants.USGS_PASSWORD));
     }
 
-    protected USGSNasaRepository(String sebalResultsPath, String usgsLoginUrl,
-                                 String usgsJsonUrl, String usgsUserName, String usgsPassword) {
+    protected USGSNasaRepository(String sebalResultsPath, String usgsJsonUrl,
+                                 String usgsUserName, String usgsPassword) {
 
-        Validate.notNull(sebalResultsPath, "sebalResultsPath cannot be null");
-        Validate.notNull(usgsLoginUrl, "usgsLoginUrl cannot be null");
         Validate.notNull(usgsJsonUrl, "usgsJsonUrl cannot be null");
         Validate.notNull(usgsUserName, "usgsUserName cannot be null");
+        Validate.notNull(sebalResultsPath, "sebalResultsPath cannot be null");
         Validate.notNull(usgsPassword, "usgsPassword cannot be null");
 
         this.sebalResultsPath = sebalResultsPath;
@@ -70,8 +67,10 @@ public class USGSNasaRepository implements Repository {
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
 
-        Validate.isTrue(directoryExists(sebalResultsPath),
-                "Sebal sebalResultsPath directory " + sebalResultsPath + " does not exist.");
+        createDirectory(sebalResultsPath);
+
+        /*Validate.isTrue(directoryExists(sebalResultsPath),
+                "Sebal sebalResultsPath directory " + sebalResultsPath + " does not exist.");*/
     }
 
     public void handleAPIKeyUpdate() throws InterruptedException {
@@ -138,7 +137,7 @@ public class USGSNasaRepository implements Repository {
         String imageDirPath = resultsDataDirPath(imageData);
         // TODO: insert also the metadata directory
 
-        boolean wasCreated = createDirectoryToImage(imageDirPath);
+        boolean wasCreated = createDirectory(imageDirPath);
         if (wasCreated) {
             System.setProperty("https.protocols", "TLSv1.2");
             String localImageFilePath = imageFilePath(imageData, imageDirPath);
@@ -215,7 +214,7 @@ public class USGSNasaRepository implements Repository {
         return result;
     }
 
-    protected boolean createDirectoryToImage(String imageDirPath) {
+    protected boolean createDirectory(String imageDirPath) {
         File imageDir = new File(imageDirPath);
         return imageDir.mkdirs();
     }
@@ -318,9 +317,9 @@ public class USGSNasaRepository implements Repository {
 
             JSONArray downloadLinkArray = downloadRequestResponse.optJSONArray(
                     PropertiesConstants.DATA_JSON_KEY);
-                    //.replace("\\/", "/");
+
             if(downloadLinkArray.length() > 0) {
-                String downloadLink = downloadLinkArray.getString(0);
+                String downloadLink = downloadLinkArray.getString(0).replace("\\/", "/");
                 downloadLink = downloadLink.replace("[", "");
                 downloadLink = downloadLink.replace("]", "");
                 downloadLink = downloadLink.replace("\"", "");
