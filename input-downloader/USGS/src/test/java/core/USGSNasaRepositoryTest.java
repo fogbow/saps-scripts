@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.util.concurrent.Executors;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -25,7 +24,6 @@ public class USGSNasaRepositoryTest {
 
     private String usgsUserName;
     private String usgsPassword;
-    private String usgsLoginUrl;
     private String usgsJsonUrl;
     private String sebalExportPath;
     private String sebalResultsPath;
@@ -37,16 +35,9 @@ public class USGSNasaRepositoryTest {
     public void setUp() {
         usgsUserName = "fake-user-name";
         usgsPassword = "fake-password";
-        usgsLoginUrl = "fake-login-url";
         usgsJsonUrl = "https://earthexplorer.usgs.gov/inventory/json";
         sebalExportPath = "/tmp";
         sebalResultsPath = "/tmp/results";
-    }
-
-    @After
-    public void cleansDataDir(){
-        File f = new File(sebalExportPath + "/data/collectionTierName/");
-        f.delete();
     }
 
     @Test
@@ -79,17 +70,24 @@ public class USGSNasaRepositoryTest {
         Assert.assertEquals("9ccf44a1c7e74d7f94769956b54cd889", apiKey);
     }
 
-    @Test (expected = MalformedURLException.class)
+    @Test
     public void testMalFormedURLDownload() throws Exception {
         USGSNasaRepository usgsNasaRepository = new USGSNasaRepository(
                 sebalExportPath, usgsJsonUrl, usgsUserName,
                 usgsPassword);
         usgsNasaRepository.handleAPIKeyUpdate();
 
-        ImageTask imageTask = new ImageTask("collectionTierName", "unknownName");
-
+        ImageTask imageTask = new ImageTask("fake-dataSet", "fake-region", "1984-01-01");
         imageTask.setDownloadLink(usgsNasaRepository.getImageDownloadLink(imageTask.getName()));
-        usgsNasaRepository.downloadImage(imageTask);
+        try{
+            usgsNasaRepository.downloadImage(imageTask);
+        } catch (MalformedURLException e){
+            Assert.assertEquals(MalformedURLException.class, e.getClass());
+            Assert.assertEquals("The given URL: " + imageTask.getDownloadLink() + " is not valid.", e.getMessage());
+        } finally {
+            File f = new File(sebalExportPath + "/data/" + imageTask.buildImageName());
+            f.delete();
+        }
     }
 
     @Test
@@ -99,13 +97,16 @@ public class USGSNasaRepositoryTest {
                 sebalExportPath, usgsJsonUrl, usgsUserName,
                 usgsPassword);
         usgsNasaRepository.handleAPIKeyUpdate();
-        ImageTask imageTask = spy(new ImageTask("collectionTierName", "unknownName"));
+        ImageTask imageTask = spy(new ImageTask("fake-dataSet", "fake-region", "1984-01-01"));
         doReturn(urlToBeTested).when(imageTask).getDownloadLink();
 
         try{
             usgsNasaRepository.downloadImage(imageTask);
         } catch (IOException e){
             Assert.assertEquals("The given URL: " + urlToBeTested + " is not reachable.", e.getMessage());
+        } finally {
+            File f = new File(sebalExportPath + "/data/" + imageTask.buildImageName());
+            f.delete();
         }
     }
 

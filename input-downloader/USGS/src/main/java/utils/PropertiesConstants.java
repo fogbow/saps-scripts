@@ -34,6 +34,11 @@ public class PropertiesConstants {
     public static final String MBR_JSON_VALUE = "mbr";
     public static final String RESULTS_JSON_KEY = "results";
 
+    // Submission constants
+    public static final String DATASET_LT5_TYPE = "landsat_5";
+    public static final String DATASET_LE7_TYPE = "landsat_7";
+    public static final String DATASET_LC8_TYPE = "landsat_8";
+
     // Dataset constants
     public static final String LANDSAT_5_PREFIX = "LT5";
     public static final String LANDSAT_7_PREFIX = "LE7";
@@ -54,5 +59,8 @@ public class PropertiesConstants {
     public static final String TILES_COORDINATES_FILE_PATH = "src/main/resources/tiles_coordinates.json";
 
     public static final String SEBAL_RESULTS_PATH = "sebal_results_local_path";
+
+    // Default Station
+    public static final String DEFAULT_STATION = "CUB00";
 }
 

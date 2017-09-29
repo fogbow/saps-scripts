@@ -150,7 +150,7 @@ public class USGSNasaRepository implements Repository {
                 localImageFile.delete();
             }
 
-            LOGGER.info("Downloading image " + imageData.getCollectionTierName() + " into file "
+            LOGGER.info("Downloading image " + imageData.getName() + " into file "
                     + localImageFilePath);
             try{
                 downloadInto(imageData, localImageFilePath);
@@ -163,17 +163,17 @@ public class USGSNasaRepository implements Repository {
     }
 
     protected String imageFilePath(ImageTask imageData, String imageDirPath) {
-        return imageDirPath + File.separator + imageData.getCollectionTierName() + ".tar.gz";
+        return imageDirPath + File.separator + imageData.getName() + ".tar.gz";
     }
 
     protected String resultsDataDirPath(ImageTask imageData) {
         return sebalResultsPath + File.separator + "data" + File.separator
-                + imageData.getCollectionTierName();
+                + imageData.getName();
     }
 
     protected String resultsMetadataDirPath(ImageTask imageData) {
         return sebalResultsPath + File.separator + "metadata" + File.separator
-                + imageData.getCollectionTierName();
+                + imageData.getName();
     }
 
     private void downloadInto(ImageTask imageData, String targetFilePath) throws Exception{
@@ -187,7 +187,7 @@ public class USGSNasaRepository implements Repository {
                 p.waitFor();
                 LOGGER.debug("ProcessOutput=" + p.exitValue());
             } catch (Exception e) {
-                LOGGER.error("Error while downloading image " + imageData.getCollectionTierName()
+                LOGGER.error("Error while downloading image " + imageData.getName()
                         + " from USGS", e);
                 throw e;
             }

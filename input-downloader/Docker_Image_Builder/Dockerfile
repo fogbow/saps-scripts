@@ -4,6 +4,7 @@ WORKDIR /home/ubuntu
 
 RUN mkdir execs
 
+COPY config/ ./
 COPY ./ execs/
 
 RUN apt-get update

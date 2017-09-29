@@ -19,11 +19,11 @@ public class USGSController {
     private ImageTask imageTask;
     private Properties properties;
 
-    public USGSController(String collectionTierName, String imageTaskName, String pathStorage) throws Exception {
+    public USGSController(String dataSet, String region, String date, String pathStorage) throws Exception {
         properties = loadProperties();
         setUsgsRepository(new USGSNasaRepository(pathStorage, properties));
         usgsRepository.handleAPIKeyUpdate();
-        setImageTask(new ImageTask(collectionTierName, imageTaskName));
+        setImageTask(new ImageTask(dataSet, region, date));
         imageTask.setDownloadLink(usgsRepository.getImageDownloadLink(imageTask.getName()));
     }
 
@@ -68,7 +68,7 @@ public class USGSController {
         Properties props = new Properties();
         FileInputStream input;
         try {
-            input = new FileInputStream(System.getProperty("user.dir") + File.separator + "execs/config/sebal.conf");
+            input = new FileInputStream(System.getProperty("user.dir") + File.separator + "config/sebal.conf");
             props.load(input);
         } catch (FileNotFoundException e) {
             LOGGER.error("Error while reading conf file", e);
