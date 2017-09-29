@@ -14,6 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class USGSNasaRepository implements Repository {
 
@@ -133,14 +135,13 @@ public class USGSNasaRepository implements Repository {
 
     @Override
     public void downloadImage(ImageTask imageData) throws Exception {
-        // create target directory to store image
-        String imageDirPath = resultsDataDirPath(imageData);
         // TODO: insert also the metadata directory
 
-        boolean wasCreated = createDirectory(imageDirPath);
-        if (wasCreated) {
+        createDirectory(sebalResultsPath);
+        File file = new File(sebalResultsPath);
+        if (file.exists()) {
             System.setProperty("https.protocols", "TLSv1.2");
-            String localImageFilePath = imageFilePath(imageData, imageDirPath);
+            String localImageFilePath = imageFilePath(imageData, sebalResultsPath);
 
             // clean if already exists (garbage collection)
             File localImageFile = new File(localImageFilePath);
@@ -154,21 +155,66 @@ public class USGSNasaRepository implements Repository {
                     + localImageFilePath);
             try{
                 downloadInto(imageData, localImageFilePath);
+                unpackTargz(localImageFilePath);
+                localImageFile.delete();
+                String collectionTierName = getCollectionTierName();
+                runGetStationData(collectionTierName, sebalResultsPath);
             } catch (Exception e){
                 throw e;
             }
         } else {
-            throw new IOException("An error occurred while creating " + imageDirPath + " directory");
+            throw new IOException("An error occurred while creating " + sebalResultsPath + " directory");
+        }
+    }
+
+    private void runGetStationData(String collectionTierName, String localImageFilePath) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/execs/get-station-data.sh", collectionTierName, localImageFilePath);
+        LOGGER.info("Starting get station data script.");
+        try {
+            Process p = builder.start();
+            p.waitFor();
+            LOGGER.debug("ProcessOutput=" + p.exitValue());
+        } catch (Exception e) {
+            LOGGER.error("Error while executing get station data script.", e);
+            throw e;
+        }
+    }
+
+    private void backOneDirectory(ImageTask imageTask) {
+        File imagesDir = new File(sebalResultsPath + File.separator + imageTask.getName());
+        for(File file: imagesDir.listFiles()){
+            file.renameTo(new File(sebalResultsPath + File.separator + file.getName()));
+        }
+    }
+
+    private String getCollectionTierName() {
+        File imagesDir = new File(sebalResultsPath);
+        for(File file: imagesDir.listFiles()){
+            String patternString = "_MTL.txt";
+            Pattern pattern = Pattern.compile(patternString);
+            Matcher matcher = pattern.matcher(file.getName());
+            if (matcher.find()){
+                return file.getName().replace(patternString, "");
+            }
+        }
+        return "";
+    }
+
+    private void unpackTargz(String localImageFilePath) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("tar", "-xzf", localImageFilePath, "-C", sebalResultsPath);
+        LOGGER.info("Started to unpack file: " + localImageFilePath);
+        try {
+            Process p = builder.start();
+            p.waitFor();
+            LOGGER.debug("ProcessOutput=" + p.exitValue());
+        } catch (Exception e) {
+            LOGGER.error("Error while unpacking file " + localImageFilePath, e);
+            throw e;
         }
     }
 
     protected String imageFilePath(ImageTask imageData, String imageDirPath) {
         return imageDirPath + File.separator + imageData.getName() + ".tar.gz";
-    }
-
-    protected String resultsDataDirPath(ImageTask imageData) {
-        return sebalResultsPath + File.separator + "data" + File.separator
-                + imageData.getName();
     }
 
     protected String resultsMetadataDirPath(ImageTask imageData) {

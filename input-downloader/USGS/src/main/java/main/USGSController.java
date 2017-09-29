@@ -37,7 +37,7 @@ public class USGSController {
             System.exit(3);
         } catch (IOException e){
             /**
-             * Tried to make download but URL is not Reachable
+             * Tried to make download but URL is not Reachable, or Tried to create a file/directory but got an error. Check logs
              */
             System.exit(4);
         } catch (Exception e){

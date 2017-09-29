@@ -22,7 +22,7 @@ public class Main {
     }
 
     private static void checkNumberOfArgs(String[] args) {
-        if(args.length != 3){
+        if(args.length != 4){
             System.exit(6);
         }
     }
