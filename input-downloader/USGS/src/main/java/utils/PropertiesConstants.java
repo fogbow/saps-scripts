@@ -62,5 +62,9 @@ public class PropertiesConstants {
 
     // Default Station
     public static final String DEFAULT_STATION = "CUB00";
+
+    // Timeout conditions in curl download operation
+    public static final String SPEED_LIMIT = "0";
+    public static final String SPEED_TIME = "10";
 }
 

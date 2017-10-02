@@ -154,7 +154,10 @@ public class USGSNasaRepository implements Repository {
             LOGGER.info("Downloading image " + imageData.getName() + " into file "
                     + localImageFilePath);
             try{
-                downloadInto(imageData, localImageFilePath);
+                int downloadExitValue = downloadInto(imageData, localImageFilePath);
+                if (downloadExitValue != 0){
+                    System.exit(downloadExitValue);
+                }
                 unpackTargz(localImageFilePath);
                 localImageFile.delete();
                 String collectionTierName = getCollectionTierName();
@@ -177,13 +180,6 @@ public class USGSNasaRepository implements Repository {
         } catch (Exception e) {
             LOGGER.error("Error while executing get station data script.", e);
             throw e;
-        }
-    }
-
-    private void backOneDirectory(ImageTask imageTask) {
-        File imagesDir = new File(sebalResultsPath + File.separator + imageTask.getName());
-        for(File file: imagesDir.listFiles()){
-            file.renameTo(new File(sebalResultsPath + File.separator + file.getName()));
         }
     }
 
@@ -222,9 +218,10 @@ public class USGSNasaRepository implements Repository {
                 + imageData.getName();
     }
 
-    private void downloadInto(ImageTask imageData, String targetFilePath) throws Exception{
+    private int downloadInto(ImageTask imageData, String targetFilePath) throws Exception{
         ProcessBuilder builder = new ProcessBuilder("curl", "-L", "-o", targetFilePath, "-X",
-                "GET", imageData.getDownloadLink());
+                "GET", imageData.getDownloadLink(), "--speed-limit", PropertiesConstants.SPEED_LIMIT,
+                "--speed-time", PropertiesConstants.SPEED_TIME);
         LOGGER.debug("Command=" + builder.command());
 
         if(isReachable(imageData.getDownloadLink())){
@@ -232,6 +229,7 @@ public class USGSNasaRepository implements Repository {
                 Process p = builder.start();
                 p.waitFor();
                 LOGGER.debug("ProcessOutput=" + p.exitValue());
+                return p.exitValue();
             } catch (Exception e) {
                 LOGGER.error("Error while downloading image " + imageData.getName()
                         + " from USGS", e);

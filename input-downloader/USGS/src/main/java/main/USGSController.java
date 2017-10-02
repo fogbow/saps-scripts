@@ -27,6 +27,11 @@ public class USGSController {
         imageTask.setDownloadLink(usgsRepository.getImageDownloadLink(imageTask.getName()));
     }
 
+    /**
+     * Other errors this program can handle:
+     *  Status 28: Means an error while downloading, operation timeout. Check conditions in PropertiesConstants (SPEED_LIMIT and SPEED_TIME)
+     *
+     */
     public void startDownload(){
         try {
             usgsRepository.downloadImage(imageTask);
