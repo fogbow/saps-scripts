@@ -174,6 +174,7 @@ public class USGSNasaRepository implements Repository {
         ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/execs/get-station-data.sh", collectionTierName,
                 localImageFilePath, ">", "/home/ubuntu/results/log/get_station.out", "2>", "/home/ubuntu/results/log/get_station.err");
         LOGGER.info("Starting get station data script.");
+        LOGGER.info("Executing process: " + builder.command());
         try {
             Process p = builder.start();
             p.waitFor();
