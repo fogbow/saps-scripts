@@ -172,7 +172,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     private void runGetStationData(String collectionTierName, String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/execs/get-station-data.sh", collectionTierName,
+        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/get-station-data.sh", collectionTierName,
                 localImageFilePath);
         LOGGER.info("Starting get station data script.");
         LOGGER.info("Executing process: " + builder.command());
