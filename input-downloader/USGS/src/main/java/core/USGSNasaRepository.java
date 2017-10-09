@@ -179,17 +179,21 @@ public class USGSNasaRepository implements Repository {
         try {
             Process p = builder.start();
             p.waitFor();
-            PrintWriter out = new PrintWriter("/home/ubuntu/results/log/get_station.out");
-            PrintWriter err = new PrintWriter("/home/ubuntu/results/log/get_station.err");
-            out.println(ProcessUtil.getOutput(p));
-            err.println(ProcessUtil.getError(p));
-            out.flush();
-            err.flush();
+            //logProcessOutput(p);
             LOGGER.debug("ProcessOutput=" + p.exitValue());
         } catch (Exception e) {
             LOGGER.error("Error while executing get station data script.", e);
             throw e;
         }
+    }
+
+    private void logProcessOutput(Process p) throws IOException {
+        PrintWriter out = new PrintWriter("/home/ubuntu/results/log/get_station.out");
+        PrintWriter err = new PrintWriter("/home/ubuntu/results/log/get_station.err");
+        out.println(ProcessUtil.getOutput(p));
+        err.println(ProcessUtil.getError(p));
+        out.flush();
+        err.flush();
     }
 
     private String getCollectionTierName() {
