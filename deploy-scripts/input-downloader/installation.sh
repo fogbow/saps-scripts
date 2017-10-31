@@ -19,11 +19,6 @@ mkdir -p /local/exports
 echo "/local/exports *(rw,insecure,no_subtree_check,async,no_root_squash)" >> /etc/exports
 service nfs-kernel-server restart
 
-### Attach disk ###
-echo ";" | sfdisk /dev/xvdb
-mkfs.ext4 /dev/xvdb1
-mount /dev/xvdb1 /local/exports
-
 ### Create log file ###
 mkdir -p /var/log/sebal-execution
 touch /var/log/sebal-execution/sebal-execution.log
