@@ -1,31 +1,41 @@
 package core;
 
-import model.ImageTask;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.Validate;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import model.ImageTask;
 import utils.ProcessUtil;
 import utils.PropertiesConstants;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class USGSNasaRepository implements Repository {
 
-    private final String sebalResultsPath;
+    private final String sapsResultsPath;
+    private final String sapsMetadataPath;
 
     private final String usgsJsonUrl;
     private final String usgsUserName;
     private final String usgsPassword;
     private String usgsAPIKey;
+
 
     // nodes
     private static final String EARTH_EXPLORER_NODE = "EE";
@@ -44,36 +54,38 @@ public class USGSNasaRepository implements Repository {
     private static final Logger LOGGER = Logger.getLogger(USGSNasaRepository.class);
 
     public USGSNasaRepository(Properties properties) {
-        this(properties.getProperty(PropertiesConstants.SEBAL_RESULTS_PATH),
-                properties.getProperty(PropertiesConstants.USGS_JSON_URL),
-                properties.getProperty(PropertiesConstants.USGS_USERNAME),
-                properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+		this(properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH),
+				properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH),
+				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
+				properties.getProperty(PropertiesConstants.USGS_USERNAME),
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD));
     }
 
-    public USGSNasaRepository(String sebalResultsPath, Properties properties) {
-        this(sebalResultsPath,
-                properties.getProperty(PropertiesConstants.USGS_JSON_URL),
-                properties.getProperty(PropertiesConstants.USGS_USERNAME),
-                properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+	public USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
+			Properties properties) {
+		this(sapsResultsPath, sapsMetadataPath,
+				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
+				properties.getProperty(PropertiesConstants.USGS_USERNAME),
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD));
     }
 
-    protected USGSNasaRepository(String sebalResultsPath, String usgsJsonUrl,
-                                 String usgsUserName, String usgsPassword) {
+	protected USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
+			String usgsJsonUrl, String usgsUserName, String usgsPassword) {
 
         Validate.notNull(usgsJsonUrl, "usgsJsonUrl cannot be null");
         Validate.notNull(usgsUserName, "usgsUserName cannot be null");
-        Validate.notNull(sebalResultsPath, "sebalResultsPath cannot be null");
+        Validate.notNull(sapsResultsPath, "sebalResultsPath cannot be null");
+        Validate.notNull(sapsMetadataPath, "sebalMetadataPath cannot be null");
         Validate.notNull(usgsPassword, "usgsPassword cannot be null");
 
-        this.sebalResultsPath = sebalResultsPath;
+        this.sapsResultsPath = sapsResultsPath;
+        this.sapsMetadataPath = sapsMetadataPath;
         this.usgsJsonUrl = usgsJsonUrl;
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
 
-        createDirectory(sebalResultsPath);
-
-        /*Validate.isTrue(directoryExists(sebalResultsPath),
-                "Sebal sebalResultsPath directory " + sebalResultsPath + " does not exist.");*/
+        createDirectory(sapsResultsPath);
+        createDirectory(sapsMetadataPath);
     }
 
     public void handleAPIKeyUpdate() throws InterruptedException {
@@ -138,11 +150,11 @@ public class USGSNasaRepository implements Repository {
     public void downloadImage(ImageTask imageData) throws Exception {
         // TODO: insert also the metadata directory
 
-        createDirectory(sebalResultsPath);
-        File file = new File(sebalResultsPath);
+        createDirectory(sapsResultsPath);
+        File file = new File(sapsResultsPath);
         if (file.exists()) {
             System.setProperty("https.protocols", "TLSv1.2");
-            String localImageFilePath = imageFilePath(imageData, sebalResultsPath);
+            String localImageFilePath = imageFilePath(imageData, sapsResultsPath);
 
             // clean if already exists (garbage collection)
             File localImageFile = new File(localImageFilePath);
@@ -162,12 +174,12 @@ public class USGSNasaRepository implements Repository {
                 unpackTargz(localImageFilePath);
                 localImageFile.delete();
                 String collectionTierName = getCollectionTierName();
-                runGetStationData(collectionTierName, sebalResultsPath);
+                runGetStationData(collectionTierName, sapsResultsPath);
             } catch (Exception e){
                 throw e;
             }
         } else {
-            throw new IOException("An error occurred while creating " + sebalResultsPath + " directory");
+            throw new IOException("An error occurred while creating " + sapsResultsPath + " directory");
         }
     }
 
@@ -196,7 +208,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     private String getCollectionTierName() {
-        File imagesDir = new File(sebalResultsPath);
+        File imagesDir = new File(sapsResultsPath);
         for(File file: imagesDir.listFiles()){
             String patternString = "_MTL.txt";
             Pattern pattern = Pattern.compile(patternString);
@@ -209,7 +221,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     private void unpackTargz(String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("tar", "-xzf", localImageFilePath, "-C", sebalResultsPath);
+        ProcessBuilder builder = new ProcessBuilder("tar", "-xzf", localImageFilePath, "-C", sapsResultsPath);
         LOGGER.info("Started to unpack file: " + localImageFilePath);
         try {
             Process p = builder.start();
@@ -226,7 +238,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     protected String resultsMetadataDirPath(ImageTask imageData) {
-        return sebalResultsPath + File.separator + "metadata" + File.separator
+        return sapsResultsPath + File.separator + "metadata" + File.separator
                 + imageData.getName();
     }
 

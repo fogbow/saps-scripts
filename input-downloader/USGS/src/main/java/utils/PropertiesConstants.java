@@ -33,7 +33,17 @@ public class PropertiesConstants {
     public static final String SEARCH_DATE_JSON_VALUE = "search_date";
     public static final String MBR_JSON_VALUE = "mbr";
     public static final String RESULTS_JSON_KEY = "results";
-
+    
+    // Metadata constants
+	public static final String METADATA_SCENE_ID = "scene_id";
+	public static final String METADATA_REGION = "region";
+	public static final String METADATA_DATASET = "dataset";
+	public static final String METADATA_IMAGE_DATE = "image_date";
+	public static final String METADATA_USGS_API_URL = "usgs_rest_api_url";
+	public static final String METADATA_NOAA_FTP_URL = "noaa_ftp_server_url";
+	public static final String METADATA_ELEVATION_ACQUIRE_URL = "elevation_acquire_url";
+	public static final String METADATA_SHAPEFILE_ACQUIRE_URL = "shapefile_acquire_url";	
+	
     // Submission constants
     public static final String DATASET_LT5_TYPE = "landsat_5";
     public static final String DATASET_LE7_TYPE = "landsat_7";
@@ -53,12 +63,20 @@ public class PropertiesConstants {
     public static final String USGS_USERNAME = "usgs_username";
     public static final String USGS_PASSWORD = "usgs_password";
     public static final String USGS_API_KEY_PERIOD = "usgs_api_key_period";
+    
+    // NOAA constants
+    public static final String NOAA_FTP_SERVER_URL = "noaa_ftp_server_url";
+
+    // Fix URLs for Elevation and Shapefiles
+    public static final String ELEVATION_ACQUIRE_URL = "elevation_acquire_url";
+    public static final String SHAPEFILE_ACQUIRE_URL = "shapefile_acquire_url";
 
     // Properties file constants
     public static final String POSSIBLE_STATIONS_FILE_PATH = "src/main/resources/possible_stations";
     public static final String TILES_COORDINATES_FILE_PATH = "src/main/resources/tiles_coordinates.json";
 
-    public static final String SEBAL_RESULTS_PATH = "sebal_results_local_path";
+    public static final String SAPS_RESULTS_PATH = "sebal_results_local_path";
+    public static final String SAPS_METADATA_PATH = "saps_metadata_path";
 
     // Default Station
     public static final String DEFAULT_STATION = "CUB00";
