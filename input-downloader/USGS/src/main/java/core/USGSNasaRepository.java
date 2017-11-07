@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import utils.ProcessUtil;
 import utils.PropertiesConstants;
 
 import java.io.*;
@@ -171,8 +172,10 @@ public class USGSNasaRepository implements Repository {
     }
 
     private void runGetStationData(String collectionTierName, String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/get-station-data.sh", collectionTierName, localImageFilePath);
+        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/get-station-data.sh", collectionTierName,
+                localImageFilePath);
         LOGGER.info("Starting get station data script.");
+        LOGGER.info("Executing process: " + builder.command());
         try {
             Process p = builder.start();
             p.waitFor();
@@ -181,6 +184,15 @@ public class USGSNasaRepository implements Repository {
             LOGGER.error("Error while executing get station data script.", e);
             throw e;
         }
+    }
+
+    private void logProcessOutput(Process p) throws IOException {
+        PrintWriter out = new PrintWriter("/home/ubuntu/results/log/get_station.out");
+        PrintWriter err = new PrintWriter("/home/ubuntu/results/log/get_station.err");
+        out.println(ProcessUtil.getOutput(p));
+        err.println(ProcessUtil.getError(p));
+        out.flush();
+        err.flush();
     }
 
     private String getCollectionTierName() {

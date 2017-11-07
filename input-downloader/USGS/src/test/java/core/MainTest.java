@@ -41,7 +41,7 @@ public class MainTest {
     @Test
     public void testMalFormedURLDownload() throws Exception {
         exit.expectSystemExitWithStatus(3);
-        USGSController USGSController = new USGSController("fake-dataSet", "fake-region", "1984-01-01", sebalResultsPath);
+        USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01", sebalResultsPath);
         USGSController.startDownload();
     }
 
@@ -49,7 +49,7 @@ public class MainTest {
     public void testUnknownImageTaskName() throws Exception {
         exit.expectSystemExitWithStatus(4);
 
-        USGSController USGSController = new USGSController("fake-dataSet", "fake-region", "1984-01-01", sebalResultsPath);
+        USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01", sebalResultsPath);
         Properties properties = USGSController.loadProperties();
 
         USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(properties));
