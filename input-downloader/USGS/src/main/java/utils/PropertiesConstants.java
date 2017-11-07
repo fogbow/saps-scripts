@@ -34,7 +34,7 @@ public class PropertiesConstants {
     public static final String MBR_JSON_VALUE = "mbr";
     public static final String RESULTS_JSON_KEY = "results";
     
-    // Metadata constants
+	// Metadata constants
 	public static final String METADATA_SCENE_ID = "scene_id";
 	public static final String METADATA_REGION = "region";
 	public static final String METADATA_DATASET = "dataset";
@@ -42,7 +42,11 @@ public class PropertiesConstants {
 	public static final String METADATA_USGS_API_URL = "usgs_rest_api_url";
 	public static final String METADATA_NOAA_FTP_URL = "noaa_ftp_server_url";
 	public static final String METADATA_ELEVATION_ACQUIRE_URL = "elevation_acquire_url";
-	public static final String METADATA_SHAPEFILE_ACQUIRE_URL = "shapefile_acquire_url";	
+	public static final String METADATA_SHAPEFILE_ACQUIRE_URL = "shapefile_acquire_url";
+	public static final String METADATA_SCENE_MTL_FILE_PATH = "scene_mtl_file_path";
+	public static final String METADATA_SCENE_GCP_FILE_PATH = "scene_gcp_file_path";
+	public static final String METADATA_SCENE_README_FILE_PATH = "scene_readme_file_path";
+	public static final String METADATA_SCENE_STATION_FILE_PATH = "scene_station_file_path";
 	
     // Submission constants
     public static final String DATASET_LT5_TYPE = "landsat_5";

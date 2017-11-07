@@ -11,7 +11,7 @@ import model.ImageTask;
 
 public class MetadataUtilImpl implements MetadataUtil {
 
-	static final Logger LOGGER = Logger.getLogger(MetadataUtilImpl.class);
+	static final Logger LOGGER = Logger.getLogger(MetadataUtilImplTest.class);
 
 	@Override
 	public Properties generateMetadata(ImageTask imageTask, String inputDirPath, String usgsAPIUrl,
@@ -39,6 +39,7 @@ public class MetadataUtilImpl implements MetadataUtil {
 			checkMTLAndPutInProperties(metadataProperties, inputFile);
 			checkGCPAndPutInProperties(metadataProperties, inputFile);
 			checkREADMEAndPutInProperties(metadataProperties, inputFile);
+			checkStationAndPutInProperties(metadataProperties, inputFile);
 		}
 	}
 
@@ -53,19 +54,29 @@ public class MetadataUtilImpl implements MetadataUtil {
 
 	private void checkMTLAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().endsWith("MTL.txt")) {
-			metadataProperties.put("scene_mtl_file_path", inputFile.getAbsolutePath());
+			metadataProperties.put(PropertiesConstants.METADATA_SCENE_MTL_FILE_PATH,
+					inputFile.getAbsolutePath());
 		}
 	}
 
 	private void checkGCPAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().endsWith("GCP.txt")) {
-			metadataProperties.put("scene_gcp_file_path", inputFile.getAbsolutePath());
+			metadataProperties.put(PropertiesConstants.METADATA_SCENE_GCP_FILE_PATH,
+					inputFile.getAbsolutePath());
 		}
 	}
 
 	private void checkREADMEAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().startsWith("README")) {
-			metadataProperties.put("scene_readme_file_path", inputFile.getAbsolutePath());
+			metadataProperties.put(PropertiesConstants.METADATA_SCENE_README_FILE_PATH,
+					inputFile.getAbsolutePath());
+		}
+	}
+
+	private void checkStationAndPutInProperties(Properties metadataProperties, File inputFile) {
+		if (inputFile.getName().endsWith("station.csv")) {
+			metadataProperties.put(PropertiesConstants.METADATA_SCENE_STATION_FILE_PATH,
+					inputFile.getAbsolutePath());
 		}
 	}
 

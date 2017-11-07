@@ -1,18 +1,18 @@
 package main;
 
-import core.USGSNasaRepository;
-import model.ImageTask;
-import utils.MetadataUtilImpl;
-import utils.PropertiesConstants;
-
-import org.apache.log4j.Logger;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Properties;
+
+import org.apache.log4j.Logger;
+
+import core.USGSNasaRepository;
+import model.ImageTask;
+import utils.MetadataUtilImpl;
+import utils.PropertiesConstants;
 
 public class USGSController {
 
