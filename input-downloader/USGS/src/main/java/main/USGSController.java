@@ -21,11 +21,11 @@ public class USGSController {
 	private USGSNasaRepository usgsRepository;
 	private ImageTask imageTask;
 	private Properties properties;
-	
+
 	public USGSController(Properties properties, ImageTask imageTask) {
 		this(new USGSNasaRepository(properties), imageTask, properties);
 	}
-	
+
 	public USGSController(USGSNasaRepository usgsNasaRepository, ImageTask imageTask,
 			Properties properties) {
 		this.usgsRepository = usgsNasaRepository;
@@ -55,17 +55,20 @@ public class USGSController {
 			/**
 			 * Tried to make download but a Malformed URL was given
 			 */
+			LOGGER.error("Error while downloading image", e);
 			System.exit(3);
 		} catch (IOException e) {
 			/**
 			 * Tried to make download but URL is not Reachable, or Tried to create a
 			 * file/directory but got an error. Check logs
 			 */
+			LOGGER.error("Error while downloading image", e);
 			System.exit(4);
 		} catch (Exception e) {
 			/**
 			 * Tried to make download but had an error with Process Builder command
 			 */
+			LOGGER.error("Error while downloading image", e);
 			System.exit(5);
 		}
 	}
@@ -73,31 +76,16 @@ public class USGSController {
 	public void saveMetadata() {
 		String resultsDirPath = properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH);
 		String metadataDirPath = properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH);
-		String usgsAPIUrl = properties.getProperty(PropertiesConstants.USGS_JSON_URL);
-		String noaaFTPServerUrl = properties.getProperty(PropertiesConstants.NOAA_FTP_SERVER_URL);
-		String elevationUrl = properties.getProperty(PropertiesConstants.ELEVATION_ACQUIRE_URL);
-		String shapefileUrl = properties.getProperty(PropertiesConstants.SHAPEFILE_ACQUIRE_URL);
 
 		MetadataUtilImpl metadataUtilImpl = new MetadataUtilImpl();
-		Properties metadataProperties = null;
-
 		try {
-			metadataProperties = metadataUtilImpl.generateMetadata(imageTask, resultsDirPath,
-					usgsAPIUrl, noaaFTPServerUrl, elevationUrl, shapefileUrl);
+			metadataUtilImpl.writeMetadata(resultsDirPath, new File(metadataDirPath));
 		} catch (Exception e) {
 			/**
-			 * Tried to generate metadata properties but had an error while doing it
+			 * Tried to generate metadata file but had an error while doing it
 			 */
+			LOGGER.error("Error while writing metadata file", e);
 			System.exit(7);
-		}
-
-		try {
-			metadataUtilImpl.writeMetadata(metadataProperties, new File(metadataDirPath));
-		} catch (Exception e) {
-			/**
-			 * Tried to write metadata file but had an error while doing it
-			 */
-			System.exit(8);
 		}
 	}
 
@@ -116,11 +104,11 @@ public class USGSController {
 	public void setImageTask(ImageTask imageTask) {
 		this.imageTask = imageTask;
 	}
-	
+
 	public void setProperties(Properties properties) {
 		this.properties = properties;
 	}
-	
+
 	public Properties getProperties() {
 		return this.properties;
 	}
