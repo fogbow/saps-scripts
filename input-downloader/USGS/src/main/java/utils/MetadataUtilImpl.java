@@ -86,7 +86,7 @@ public class MetadataUtilImpl implements MetadataUtil {
 
 		try {
 			OutputStream out = new FileOutputStream(metadataFile);
-			metadataProperties.store(out, "");
+			metadataProperties.store(out, "Input Downloader Implementation Metadata");
 		} catch (Exception e) {
 			LOGGER.error("Error while writing metadata file in " + metadataFile.getAbsolutePath(),
 					e);
