@@ -11,7 +11,7 @@ import model.ImageTask;
 
 public class MetadataUtilImpl implements MetadataUtil {
 
-	static final Logger LOGGER = Logger.getLogger(MetadataUtilImplTest.class);
+	static final Logger LOGGER = Logger.getLogger(MetadataUtilImpl.class);
 
 	@Override
 	public Properties generateMetadata(ImageTask imageTask, String inputDirPath, String usgsAPIUrl,
@@ -95,5 +95,4 @@ public class MetadataUtilImpl implements MetadataUtil {
 
 		return true;
 	}
-
 }
