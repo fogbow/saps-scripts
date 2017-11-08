@@ -21,6 +21,17 @@ public class USGSController {
 	private USGSNasaRepository usgsRepository;
 	private ImageTask imageTask;
 	private Properties properties;
+	
+	public USGSController(Properties properties, ImageTask imageTask) {
+		this(new USGSNasaRepository(properties), imageTask, properties);
+	}
+	
+	public USGSController(USGSNasaRepository usgsNasaRepository, ImageTask imageTask,
+			Properties properties) {
+		this.usgsRepository = usgsNasaRepository;
+		this.imageTask = imageTask;
+		this.properties = properties;
+	}
 
 	public USGSController(String dataSet, String region, String date, String pathStorage,
 			String pathMetadata) throws Exception {
@@ -104,6 +115,14 @@ public class USGSController {
 
 	public void setImageTask(ImageTask imageTask) {
 		this.imageTask = imageTask;
+	}
+	
+	public void setProperties(Properties properties) {
+		this.properties = properties;
+	}
+	
+	public Properties getProperties() {
+		return this.properties;
 	}
 
 	public static Properties loadProperties() {

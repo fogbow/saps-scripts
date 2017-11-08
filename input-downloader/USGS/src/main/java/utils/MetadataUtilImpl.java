@@ -43,7 +43,7 @@ public class MetadataUtilImpl implements MetadataUtil {
 		}
 	}
 
-	private void checkBandAndPutInProperties(Properties metadataProperties, File inputFile) {
+	protected void checkBandAndPutInProperties(Properties metadataProperties, File inputFile) {
 		for (int i = 1; i <= 11; i++) {
 			if (inputFile.getName().endsWith("B" + i + ".TIF")) {
 				metadataProperties.put("scene_band_" + i + "_file_path",
@@ -52,28 +52,28 @@ public class MetadataUtilImpl implements MetadataUtil {
 		}
 	}
 
-	private void checkMTLAndPutInProperties(Properties metadataProperties, File inputFile) {
+	protected void checkMTLAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().endsWith("MTL.txt")) {
 			metadataProperties.put(PropertiesConstants.METADATA_SCENE_MTL_FILE_PATH,
 					inputFile.getAbsolutePath());
 		}
 	}
 
-	private void checkGCPAndPutInProperties(Properties metadataProperties, File inputFile) {
+	protected void checkGCPAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().endsWith("GCP.txt")) {
 			metadataProperties.put(PropertiesConstants.METADATA_SCENE_GCP_FILE_PATH,
 					inputFile.getAbsolutePath());
 		}
 	}
 
-	private void checkREADMEAndPutInProperties(Properties metadataProperties, File inputFile) {
+	protected void checkREADMEAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().startsWith("README")) {
 			metadataProperties.put(PropertiesConstants.METADATA_SCENE_README_FILE_PATH,
 					inputFile.getAbsolutePath());
 		}
 	}
 
-	private void checkStationAndPutInProperties(Properties metadataProperties, File inputFile) {
+	protected void checkStationAndPutInProperties(Properties metadataProperties, File inputFile) {
 		if (inputFile.getName().endsWith("station.csv")) {
 			metadataProperties.put(PropertiesConstants.METADATA_SCENE_STATION_FILE_PATH,
 					inputFile.getAbsolutePath());

@@ -13,13 +13,20 @@ public class ImageTask implements Serializable {
     private String dataSet;
     private String region;
     private String date;
+    
+	public ImageTask(String name, String dataSet, String region, String date) {
+		this.name = name;
+		this.dataSet = dataSet;
+		this.region = region;
+		this.date = date;
+	}
 
-    public ImageTask(String dataSet, String region, String date){
-        this.dataSet = dataSet;
-        this.region = region;
-        this.date = date;
-        this.name = buildImageName();
-    }
+	public ImageTask(String dataSet, String region, String date) {
+		this.dataSet = dataSet;
+		this.region = region;
+		this.date = date;
+		this.name = buildImageName();
+	}
 
     public String buildImageName() {
         String imageName = formatDataSet();
