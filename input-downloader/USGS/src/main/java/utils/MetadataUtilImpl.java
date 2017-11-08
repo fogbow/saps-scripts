@@ -86,7 +86,7 @@ public class MetadataUtilImpl implements MetadataUtil {
 
 		try {
 			OutputStream out = new FileOutputStream(metadataFile);
-			metadataProperties.store(out, "This is an optional header comment string");
+			metadataProperties.store(out, "");
 		} catch (Exception e) {
 			LOGGER.error("Error while writing metadata file in " + metadataFile.getAbsolutePath(),
 					e);
