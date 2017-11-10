@@ -1,11 +1,6 @@
 package core;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,6 +11,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -36,6 +32,14 @@ public class USGSNasaRepository implements Repository {
     private final String usgsPassword;
     private String usgsAPIKey;
 
+    /*
+      the number of milliseconds until this method will timeout if no connection could be established to the source
+     */
+    private int downloadConnectionTimeout;
+    /*
+      the number of milliseconds until this method will timeout if no data could be read from the source
+     */
+    private int downloadReadTimeout;
 
     // nodes
     private static final String EARTH_EXPLORER_NODE = "EE";
@@ -48,6 +52,9 @@ public class USGSNasaRepository implements Repository {
     private static final String LAST_YEAR_SUFFIX = "-12-31";
     private static final int MAX_RESULTS = 50000;
 
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
+    private static final int DEFAULT_READ_TIMEOUT = 300000;
+
     // response constants
     private static final String USGS_NULL_RESPONSE = "null";
 
@@ -58,19 +65,21 @@ public class USGSNasaRepository implements Repository {
 				properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH),
 				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
 				properties.getProperty(PropertiesConstants.USGS_USERNAME),
-				properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD),
+                properties);
     }
 
 	public USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
 			Properties properties) {
-		this(sapsResultsPath, sapsMetadataPath,
+        this(sapsResultsPath, sapsMetadataPath,
 				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
 				properties.getProperty(PropertiesConstants.USGS_USERNAME),
-				properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD),
+                properties);
     }
 
 	protected USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
-			String usgsJsonUrl, String usgsUserName, String usgsPassword) {
+			String usgsJsonUrl, String usgsUserName, String usgsPassword, Properties properties) {
 
         Validate.notNull(usgsJsonUrl, "usgsJsonUrl cannot be null");
         Validate.notNull(usgsUserName, "usgsUserName cannot be null");
@@ -83,6 +92,20 @@ public class USGSNasaRepository implements Repository {
         this.usgsJsonUrl = usgsJsonUrl;
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
+
+        if(properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT) == null){
+            this.downloadConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+        } else {
+            this.downloadConnectionTimeout = Integer.parseInt(properties.getProperty(
+                    PropertiesConstants.CONNECTION_TIMEOUT));
+        }
+
+        if(properties.getProperty(PropertiesConstants.READ_TIMEOUT) == null){
+            this.downloadReadTimeout = DEFAULT_READ_TIMEOUT;
+        } else {
+            this.downloadReadTimeout = Integer.parseInt(properties.getProperty(
+                    PropertiesConstants.READ_TIMEOUT));
+        }
 
         createDirectory(sapsResultsPath);
         createDirectory(sapsMetadataPath);
@@ -242,28 +265,20 @@ public class USGSNasaRepository implements Repository {
                 + imageData.getName();
     }
 
-    private int downloadInto(ImageTask imageData, String targetFilePath) throws Exception{
-        ProcessBuilder builder = new ProcessBuilder("curl", "-L", "-o", targetFilePath, "-X",
-                "GET", imageData.getDownloadLink(), "--speed-limit", PropertiesConstants.SPEED_LIMIT,
-                "--speed-time", PropertiesConstants.SPEED_TIME);
-        LOGGER.debug("Command=" + builder.command());
-
-        if(isReachable(imageData.getDownloadLink())){
-            try {
-                Process p = builder.start();
-                p.waitFor();
-                LOGGER.debug("ProcessOutput=" + p.exitValue());
-                return p.exitValue();
-            } catch (Exception e) {
-                LOGGER.error("Error while downloading image " + imageData.getName()
-                        + " from USGS", e);
-                throw e;
+    private int downloadInto(ImageTask imageData, String targetFilePath){
+        try {
+            if(isReachable(imageData.getDownloadLink())){
+                FileUtils.copyURLToFile(new URL(imageData.getDownloadLink()),
+                        new File(targetFilePath), downloadConnectionTimeout, downloadReadTimeout);
+            }else{
+                LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
+                return 5;
             }
-        }else{
-            IOException e = new IOException("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
-            LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not reachable.", e);
-            throw e;
+        } catch (IOException e) {
+            LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not valid.", e);
+                return 5;
         }
+        return 0;
     }
 
     public static boolean isReachable(String URLName) throws IOException {

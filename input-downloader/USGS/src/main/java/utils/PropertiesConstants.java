@@ -77,7 +77,7 @@ public class PropertiesConstants {
 	// Default Station
 	public static final String DEFAULT_STATION = "CUB00";
 
-	// Timeout conditions in curl download operation
-	public static final String SPEED_LIMIT = "0";
-	public static final String SPEED_TIME = "10";
+	// Timeout conditions in download operation
+	public static final String CONNECTION_TIMEOUT = "download_connection_timeout";
+	public static final String READ_TIMEOUT = "download_read_timeout";
 }
