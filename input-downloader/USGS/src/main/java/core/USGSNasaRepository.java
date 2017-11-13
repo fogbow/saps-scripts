@@ -93,14 +93,16 @@ public class USGSNasaRepository implements Repository {
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
 
-        if(properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT) == null){
+        if(properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT) == null ||
+                properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT).isEmpty()){
             this.downloadConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
         } else {
             this.downloadConnectionTimeout = Integer.parseInt(properties.getProperty(
                     PropertiesConstants.CONNECTION_TIMEOUT));
         }
 
-        if(properties.getProperty(PropertiesConstants.READ_TIMEOUT) == null){
+        if(properties.getProperty(PropertiesConstants.READ_TIMEOUT) == null ||
+                properties.getProperty(PropertiesConstants.READ_TIMEOUT).isEmpty()){
             this.downloadReadTimeout = DEFAULT_READ_TIMEOUT;
         } else {
             this.downloadReadTimeout = Integer.parseInt(properties.getProperty(
@@ -170,7 +172,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     @Override
-    public void downloadImage(ImageTask imageData) throws Exception {
+    public void downloadImage(ImageTask imageData) throws IOException, InterruptedException {
         // TODO: insert also the metadata directory
 
         createDirectory(sapsResultsPath);
@@ -189,18 +191,14 @@ public class USGSNasaRepository implements Repository {
 
             LOGGER.info("Downloading image " + imageData.getName() + " into file "
                     + localImageFilePath);
-            try{
-                int downloadExitValue = downloadInto(imageData, localImageFilePath);
-                if (downloadExitValue != 0){
-                    System.exit(downloadExitValue);
-                }
-                unpackTargz(localImageFilePath);
-                localImageFile.delete();
-                String collectionTierName = getCollectionTierName();
-                runGetStationData(collectionTierName, sapsResultsPath);
-            } catch (Exception e){
-                throw e;
+            int downloadExitValue = downloadInto(imageData, localImageFilePath);
+            if (downloadExitValue != 0){
+                System.exit(downloadExitValue);
             }
+            unpackTargz(localImageFilePath);
+            localImageFile.delete();
+            String collectionTierName = getCollectionTierName();
+            runGetStationData(collectionTierName, sapsResultsPath);
         } else {
             throw new IOException("An error occurred while creating " + sapsResultsPath + " directory");
         }
@@ -265,18 +263,18 @@ public class USGSNasaRepository implements Repository {
                 + imageData.getName();
     }
 
-    private int downloadInto(ImageTask imageData, String targetFilePath){
+    private int downloadInto(ImageTask imageData, String targetFilePath) throws IOException {
         try {
             if(isReachable(imageData.getDownloadLink())){
                 FileUtils.copyURLToFile(new URL(imageData.getDownloadLink()),
                         new File(targetFilePath), downloadConnectionTimeout, downloadReadTimeout);
             }else{
-                LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
+                LOGGER.info("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
                 return 5;
             }
         } catch (IOException e) {
-            LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not valid.", e);
-                return 5;
+            LOGGER.info("The given URL: " + imageData.getDownloadLink() + " is not valid.");
+            throw e;
         }
         return 0;
     }
@@ -288,10 +286,10 @@ public class USGSNasaRepository implements Repository {
             con.connect();
             result = con.getResponseCode() >= 200 && con.getResponseCode() < 400;
         } catch (MalformedURLException e){
-            LOGGER.error("The given URL: " + URLName + " is not valid.", e);
+            LOGGER.error("The given URL: " + URLName + " is not valid.");
             throw new MalformedURLException("The given URL: " + URLName + " is not valid.");
         } catch (UnknownHostException e){
-            LOGGER.error("The DNS could not find the following URL: " + URLName, e);
+            LOGGER.error("The DNS could not find the following URL: " + URLName);
             throw new UnknownHostException("The DNS could not find the following URL: " + URLName);
         }
         return result;

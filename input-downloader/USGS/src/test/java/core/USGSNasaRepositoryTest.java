@@ -5,6 +5,7 @@ import org.apache.http.*;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.*;
+import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.junit.rules.ExpectedException;
 
 import java.io.ByteArrayInputStream;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.Properties;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -30,7 +32,7 @@ public class USGSNasaRepositoryTest {
 	private String sapsMetadataPath;
 
 	@Rule
-	public ExpectedException expectedException = ExpectedException.none();
+	public ExpectedSystemExit expectedSystemExit = ExpectedSystemExit.none();
 
 	@Before
 	public void setUp() {
@@ -60,7 +62,7 @@ public class USGSNasaRepositoryTest {
 		doReturn(new Header[0]).when(httpResponse).getAllHeaders();
 
 		USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(sapsExportPath,
-				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword));
+				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword, new Properties()));
 
 		doReturn(content).when(usgsNasaRepository).getLoginResponse();
 
@@ -75,7 +77,7 @@ public class USGSNasaRepositoryTest {
 	@Test
 	public void testMalFormedURLDownload() throws Exception {
 		USGSNasaRepository usgsNasaRepository = new USGSNasaRepository(sapsExportPath,
-				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword);
+				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword, new Properties());
 		usgsNasaRepository.handleAPIKeyUpdate();
 
 		ImageTask imageTask = new ImageTask("fake-dataSet", "fake-region", "1984-01-01");
@@ -94,34 +96,27 @@ public class USGSNasaRepositoryTest {
 
 	@Test
 	public void testUnknownImageTaskName() throws Exception {
+		expectedSystemExit.expectSystemExitWithStatus(5);
 		String urlToBeTested = "http://www.google.com/invalidURL";
-		USGSNasaRepository usgsNasaRepository = new USGSNasaRepository(sapsExportPath,
-				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword);
+		String content = "{ \"errorCode\":null, \"error\":\"\", \"data\":\"9ccf44a1c7e74d7f94769956b54cd889\", \"api_version\":\"1.0\" }";
+
+		USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(sapsExportPath,
+				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword, new Properties()));
+		doReturn(content).when(usgsNasaRepository).getLoginResponse();
 		usgsNasaRepository.handleAPIKeyUpdate();
 		ImageTask imageTask = spy(new ImageTask("fake-dataSet", "fake-region", "1984-01-01"));
 		doReturn(urlToBeTested).when(imageTask).getDownloadLink();
 
-		try {
-			usgsNasaRepository.downloadImage(imageTask);
-		} catch (IOException e) {
-			Assert.assertEquals("The given URL: " + urlToBeTested + " is not reachable.",
-					e.getMessage());
-		} finally {
-			File f = new File(sapsExportPath + "/data/" + imageTask.buildImageName());
-			f.delete();
-		}
+		usgsNasaRepository.downloadImage(imageTask);
+
+		File f = new File(sapsExportPath + "/data/" + imageTask.buildImageName());
+		f.delete();
 	}
 
 	@Test
 	public void testURLAvailability() throws IOException {
-		String urlToBeTested = "http://www.google.com";
-		Assert.assertTrue(USGSNasaRepository.isReachable(urlToBeTested));
-
-		urlToBeTested = "http://www.google.com/invalidURL";
-		Assert.assertFalse(USGSNasaRepository.isReachable(urlToBeTested));
-
+		String urlToBeTested = "abc";
 		try {
-			urlToBeTested = "abc";
 			USGSNasaRepository.isReachable(urlToBeTested);
 		} catch (MalformedURLException e) {
 			Assert.assertEquals("The given URL: " + urlToBeTested + " is not valid.",
@@ -135,7 +130,7 @@ public class USGSNasaRepositoryTest {
 		String expectedDownloadLink = "https://dds.cr.usgs.gov/ltaauth/hsm/lta3/lsat_ortho/gls_1975/046/034/p046r034_1x19720725.tar.gz?id=erjal92rc4o2070t76uqbispk4&iid=P046R034_1X19720725&did=338419617&ver=production";
 
 		USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(sapsResultsPath,
-				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword));
+				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword, new Properties()));
 
 		doReturn(fakeDownloadResponse).when(usgsNasaRepository).getDownloadHttpResponse(anyString(),
 				anyString(), anyString(), anyString());
