@@ -74,12 +74,15 @@ public class USGSController {
 	}
 
 	public void saveMetadata() {
+		LOGGER.info("Starting to generate metadata file");
+		
 		String resultsDirPath = properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH);
-		String metadataDirPath = properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH);
+		String metadataFilePath = properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH)
+				+ File.separator + "inputDescription.txt";
 
 		MetadataUtilImpl metadataUtilImpl = new MetadataUtilImpl();
 		try {
-			metadataUtilImpl.writeMetadata(resultsDirPath, new File(metadataDirPath));
+			metadataUtilImpl.writeMetadata(resultsDirPath, new File(metadataFilePath));
 		} catch (Exception e) {
 			/**
 			 * Tried to generate metadata file but had an error while doing it

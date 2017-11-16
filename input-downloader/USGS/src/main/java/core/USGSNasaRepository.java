@@ -171,8 +171,6 @@ public class USGSNasaRepository implements Repository {
 
     @Override
     public void downloadImage(ImageTask imageData) throws IOException, InterruptedException {
-        // TODO: insert also the metadata directory
-
         createDirectory(sapsResultsPath);
         File file = new File(sapsResultsPath);
         if (file.exists()) {
@@ -203,8 +201,8 @@ public class USGSNasaRepository implements Repository {
     }
 
     private void runGetStationData(String collectionTierName, String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/get-station-data.sh", collectionTierName,
-                localImageFilePath);
+		ProcessBuilder builder = new ProcessBuilder(PropertiesConstants.GET_STATIONS_SCRIPT_PATH,
+				collectionTierName, localImageFilePath);
         LOGGER.info("Starting get station data script.");
         LOGGER.info("Executing process: " + builder.command());
         try {

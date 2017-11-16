@@ -14,19 +14,20 @@ public class MetadataUtilImpl implements MetadataUtil {
 
 	@Override
 	public void writeMetadata(String inputDirPath, File metadataFile) throws IOException {
+		if (!metadataFile.exists()) {
+			metadataFile.createNewFile();
+		}
+
 		BufferedWriter writer = null;
 		Date date = new Date();
 
-		try {
-			writer = new BufferedWriter(new FileWriter(metadataFile));
-			writer.write("# Input Downloader Implementation Metadata\n");
-			writer.write("#" + date + "\n");
-			
-			writeInputFilesPaths(inputDirPath, writer);
-			LOGGER.info("Metadata file " + metadataFile.getAbsolutePath() + " generated");
-		} finally {
-			writer.close();
-		}
+		writer = new BufferedWriter(new FileWriter(metadataFile));
+		writer.write("# Input Downloader Implementation Metadata\n");
+		writer.write("#" + date + "\n");
+
+		writeInputFilesPaths(inputDirPath, writer);
+		LOGGER.info("Metadata file " + metadataFile.getAbsolutePath() + " generated");
+		writer.close();
 	}
 
 	private void writeInputFilesPaths(String inputDirPath, BufferedWriter writer)
