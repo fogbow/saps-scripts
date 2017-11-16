@@ -55,20 +55,20 @@ public class USGSController {
 			/**
 			 * Tried to make download but a Malformed URL was given
 			 */
-			LOGGER.error("Error while downloading image");
+			LOGGER.error("Error while downloading image", e);
 			System.exit(3);
 		} catch (IOException e) {
 			/**
 			 * Tried to make download but URL is not Reachable, or Tried to create a
 			 * file/directory but got an error. Check logs
 			 */
-			LOGGER.error("Error while downloading image");
+			LOGGER.error("Error while downloading image", e);
 			System.exit(4);
 		} catch (Exception e) {
 			/**
 			 * Tried to make download but had an error with Process Builder command
 			 */
-			LOGGER.error("Error while downloading image");
+			LOGGER.error("Error while downloading image", e);
 			System.exit(5);
 		}
 	}

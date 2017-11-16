@@ -1,6 +1,10 @@
 package core;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,13 +23,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import model.ImageTask;
-import utils.ProcessUtil;
 import utils.PropertiesConstants;
 
 public class USGSNasaRepository implements Repository {
 
     private final String sapsResultsPath;
-    private final String sapsMetadataPath;
 
     private final String usgsJsonUrl;
     private final String usgsUserName;
@@ -54,9 +56,6 @@ public class USGSNasaRepository implements Repository {
 
     private static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     private static final int DEFAULT_READ_TIMEOUT = 300000;
-
-    // response constants
-    private static final String USGS_NULL_RESPONSE = "null";
 
     private static final Logger LOGGER = Logger.getLogger(USGSNasaRepository.class);
 
@@ -88,7 +87,6 @@ public class USGSNasaRepository implements Repository {
         Validate.notNull(usgsPassword, "usgsPassword cannot be null");
 
         this.sapsResultsPath = sapsResultsPath;
-        this.sapsMetadataPath = sapsMetadataPath;
         this.usgsJsonUrl = usgsJsonUrl;
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
@@ -218,16 +216,7 @@ public class USGSNasaRepository implements Repository {
             throw e;
         }
     }
-
-    private void logProcessOutput(Process p) throws IOException {
-        PrintWriter out = new PrintWriter("/home/ubuntu/results/log/get_station.out");
-        PrintWriter err = new PrintWriter("/home/ubuntu/results/log/get_station.err");
-        out.println(ProcessUtil.getOutput(p));
-        err.println(ProcessUtil.getError(p));
-        out.flush();
-        err.flush();
-    }
-
+    
     private String getCollectionTierName() {
         File imagesDir = new File(sapsResultsPath);
         for(File file: imagesDir.listFiles()){
