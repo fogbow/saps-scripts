@@ -25,7 +25,7 @@ touch /var/log/sebal-execution/sebal-execution.log
 chmod 777 /var/log/sebal-execution/sebal-execution.log
 
 ### Run Input Downloader Conatiner ###
-docker pull fogbow/downloader-deploy:v1
-docker run --name input-downloader --privileged -v /local/exports:/local/exports -td fogbow/downloader-deploy:v1
+docker pull fogbow/downloader-deploy:latest
+docker run --name input-downloader --privileged -v /local/exports:/local/exports -td fogbow/downloader-deploy:latest
 #docker exec input-downloader
 
