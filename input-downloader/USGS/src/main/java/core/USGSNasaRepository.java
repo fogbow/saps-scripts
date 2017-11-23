@@ -283,6 +283,8 @@ public class USGSNasaRepository implements Repository {
         boolean result = false;
         try {
             HttpURLConnection con = (HttpURLConnection) new URL(URLName).openConnection();
+            con.setConnectTimeout(5000);
+            con.setReadTimeout(5000);
             con.connect();
             result = con.getResponseCode() >= 200 && con.getResponseCode() < 400;
         } catch (MalformedURLException e){
