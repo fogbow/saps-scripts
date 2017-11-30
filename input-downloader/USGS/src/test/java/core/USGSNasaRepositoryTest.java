@@ -4,9 +4,11 @@ import model.ImageTask;
 import org.apache.http.*;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.message.BasicStatusLine;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
-import org.junit.rules.ExpectedException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -16,9 +18,7 @@ import java.net.MalformedURLException;
 import java.util.Properties;
 
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 public class USGSNasaRepositoryTest {
 

@@ -1,6 +1,5 @@
 package model;
 
-import model.ImageTask;
 import org.junit.Assert;
 import org.junit.Test;
 
