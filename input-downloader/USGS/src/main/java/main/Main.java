@@ -1,6 +1,10 @@
 package main;
 
+import org.apache.log4j.Logger;
+
 public class Main {
+
+	static final Logger LOGGER = Logger.getLogger(Main.class);
 
     /**
      * How to run this project:
@@ -17,16 +21,24 @@ public class Main {
      *
      */
 	public static void main(String[] args) throws Exception {
+		LOGGER.debug("Initiating Input Downloader script");
 		checkNumberOfArgs(args);
 
-		USGSController USGSController = new USGSController(args[0], args[1], args[2], args[3],
-				args[4]);
-		USGSController.startDownload();
-		USGSController.saveMetadata();
+		USGSController usgsController = new USGSController(
+				args[0],
+				args[1],
+				args[2],
+				args[3],
+				args[4]
+		);
+		usgsController.startDownload();
+		usgsController.saveMetadata();
 	}
 
-	private static void checkNumberOfArgs(String[] args) {
+	static void checkNumberOfArgs(String[] args) {
+		LOGGER.debug("Verifying number of arguments");
 		if (args.length != 5) {
+			LOGGER.error("Incorrect number of arguments (expected 5, received " + args.length + ")");
 			System.exit(6);
 		}
 	}

@@ -16,15 +16,11 @@ import utils.PropertiesConstants;
 
 public class USGSController {
 
-	static final Logger LOGGER = Logger.getLogger(USGSController.class);
+	private static final Logger LOGGER = Logger.getLogger(USGSController.class);
 
 	private USGSNasaRepository usgsRepository;
 	private ImageTask imageTask;
 	private Properties properties;
-
-	public USGSController(Properties properties, ImageTask imageTask) {
-		this(new USGSNasaRepository(properties), imageTask, properties);
-	}
 
 	public USGSController(USGSNasaRepository usgsNasaRepository, ImageTask imageTask,
 			Properties properties) {
@@ -48,7 +44,8 @@ public class USGSController {
 	 * (SPEED_LIMIT and SPEED_TIME)
 	 *
 	 */
-	public void startDownload() {
+	void startDownload() {
+		LOGGER.debug("Starting download");
 		try {
 			usgsRepository.downloadImage(imageTask);
 		} catch (MalformedURLException e) {
@@ -73,7 +70,8 @@ public class USGSController {
 		}
 	}
 
-	public void saveMetadata() {
+	void saveMetadata() {
+		LOGGER.debug("Saving metadata");
 		String resultsDirPath = properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH);
 		String metadataDirPath = properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH);
 
@@ -113,12 +111,13 @@ public class USGSController {
 		return this.properties;
 	}
 
-	public static Properties loadProperties() {
+	private static Properties loadProperties() {
 		Properties props = new Properties();
 		FileInputStream input;
 		try {
 			input = new FileInputStream(
-					System.getProperty("user.dir") + File.separator + "config/sebal.conf");
+					System.getProperty("user.dir") + File.separator + "config/sebal.conf"
+			);
 			props.load(input);
 		} catch (FileNotFoundException e) {
 			LOGGER.error("Error while reading conf file", e);

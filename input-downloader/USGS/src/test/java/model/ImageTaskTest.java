@@ -1,4 +1,4 @@
-package core;
+package model;
 
 import model.ImageTask;
 import org.junit.Assert;
