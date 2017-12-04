@@ -17,6 +17,7 @@ RUN apt-get update
 RUN apt-get install openjdk-7-jdk -y
 RUN apt-get update
 RUN apt-get install wget
+RUN apt-get install maven -y
 
-RUN cd /home/ubuntu/ && git clone https://github.com/ufcg-lsd/SEBAL.git
-RUN cd /home/ubuntu/SEBAL && tar -xvzf target.tar.gz
+RUN cd /home/ubuntu/ && git clone https://github.com/fogbow/SEBAL.git
+RUN cd /home/ubuntu/SEBAL && git checkout update-station-search && mvn -e install -Dmaven.test.skip=true
