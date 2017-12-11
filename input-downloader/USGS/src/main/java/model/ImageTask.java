@@ -1,10 +1,6 @@
 package model;
 
 import java.io.Serializable;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-
-import utils.PropertiesConstants;
 
 public class ImageTask implements Serializable {
 
@@ -20,51 +16,6 @@ public class ImageTask implements Serializable {
 		this.region = region;
 		this.date = date;
 	}
-
-	public ImageTask(String dataSet, String region, String date) {
-		this.dataSet = dataSet;
-		this.region = region;
-		this.date = date;
-		this.name = buildImageName();
-	}
-
-    public String buildImageName() {
-        String imageName = formatDataSet();
-        imageName = imageName + region;
-        imageName += formatDate();
-        imageName += PropertiesConstants.DEFAULT_STATION;
-        return imageName;
-    }
-
-    private String formatDataSet() {
-        switch (dataSet) {
-            case (PropertiesConstants.DATASET_LT5_TYPE):
-                return PropertiesConstants.LANDSAT_5_PREFIX;
-            case (PropertiesConstants.DATASET_LE7_TYPE):
-                return PropertiesConstants.LANDSAT_7_PREFIX;
-            case (PropertiesConstants.DATASET_LC8_TYPE):
-                return PropertiesConstants.LANDSAT_8_PREFIX;
-            default:
-                return "";
-        }
-    }
-
-    private String formatDate() {
-        String[] dateArray = date.split("-");
-        if(dateArray.length != 3){
-            System.exit(7);
-        }
-        int year = Integer.parseInt(dateArray[0]);
-        int month = Integer.parseInt(dateArray[1]);
-        int day = Integer.parseInt(dateArray[2]);
-        Calendar cal = new GregorianCalendar();
-        cal.setLenient(false);
-        cal.set(Calendar.YEAR, year);
-        cal.set(Calendar.MONTH, month - 1); // Calendar month is 0-based.
-        cal.set(Calendar.DAY_OF_MONTH, day);
-        String formattedDate = String.valueOf(year) + String.format("%03d",cal.get(Calendar.DAY_OF_YEAR));
-        return formattedDate;
-    }
 
     public String getName() {
         return name;
