@@ -33,6 +33,9 @@ public class PropertiesConstants {
 	public static final String SEARCH_DATE_JSON_VALUE = "search_date";
 	public static final String MBR_JSON_VALUE = "mbr";
 	public static final String RESULTS_JSON_KEY = "results";
+	public static final String ACQUISITION_DATE_JSON_KEY = "acquisitionDate";
+    public static final String _DATASET_NAME_JSON_KEY = "dataset_name";
+    public static final String SUMMARY_JSON_KEY = "summary";
 
 	// Metadata constants
 	public static final String METADATA_SCENE_MTL_FILE_PATH = "scene_mtl_file_path";
@@ -69,14 +72,11 @@ public class PropertiesConstants {
 
 	// Properties file constants
 	public static final String POSSIBLE_STATIONS_FILE_PATH = "src/main/resources/possible_stations";
-	public static final String TILES_COORDINATES_FILE_PATH = "src/main/resources/tiles_coordinates.json";
+	public static final String TILES_COORDINATES_FILE_PATH = "src/main/resources/WRScornerPoints.csv";
 	public static final String GET_STATIONS_SCRIPT_PATH = "/home/ubuntu/get-station-data.sh";
 
 	public static final String SAPS_RESULTS_PATH = "sebal_results_local_path";
 	public static final String SAPS_METADATA_PATH = "saps_metadata_path";
-
-	// Default Station
-	public static final String DEFAULT_STATION = "CUB00";
 
 	// Timeout conditions in download operation
 	public static final String CONNECTION_TIMEOUT = "download_connection_timeout";

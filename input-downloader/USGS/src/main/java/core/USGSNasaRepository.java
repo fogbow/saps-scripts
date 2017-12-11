@@ -23,7 +23,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import model.ImageTask;
+import utils.NotFoundException;
 import utils.PropertiesConstants;
+import utils.StringUtil;
 
 public class USGSNasaRepository implements Repository {
 
@@ -435,54 +437,70 @@ public class USGSNasaRepository implements Repository {
     }
 
     public JSONArray getAvailableImagesInRange(String dataSet, int firstYear, int lastYear,
-                                               String region) {
-        String latitude;
-        String longitude;
+			String region) {
+		String latitude;
+		String longitude;
 
-        try {
-            JSONObject regionJSON = getRegionJSON(region);
-            latitude = regionJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
-            longitude = regionJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
-        } catch (JSONException e) {
-            LOGGER.error("Error while getting coordinates from region JSON", e);
-            return null;
-        }
+		try {
+			JSONObject geolocationJSON = getRegionGeolocation(region);
+			latitude = geolocationJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
+			longitude = geolocationJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
+		} catch (JSONException e) {
+			LOGGER.error("Error while getting coordinates from region JSON", e);
+			return null;
+		}
 
-        return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
-    }
+		return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
+	}
 
-    private JSONObject getRegionJSON(String region) throws JSONException {
-        String jsonData = readFile(PropertiesConstants.TILES_COORDINATES_FILE_PATH);
-        JSONObject regionsJSON = new JSONObject(jsonData);
-        JSONArray tiles = regionsJSON.getJSONArray(PropertiesConstants.TILES_JSON_KEY);
-        for (int i = 0; i < tiles.length(); i++) {
-            if (tiles.getJSONObject(i).getString(PropertiesConstants.TILE_ID_JSON_KEY)
-                    .equals(region)) {
-                return tiles.getJSONObject(i);
-            }
-        }
+	public JSONObject getRegionGeolocation(String region) throws JSONException {
+		String fileLine = getLineWithRegion(PropertiesConstants.TILES_COORDINATES_FILE_PATH,
+				region);
 
-        return null;
-    }
+		String[] lineColumns = fileLine.split(",");
+		String centerLatitude = lineColumns[2].replace(',', '.');
+		String centerLongitude = lineColumns[3].replace(',', '.');
 
-    private static String readFile(String filename) {
-        String result = "";
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filename));
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                line = br.readLine();
-            }
-            result = sb.toString();
-            br.close();
-        } catch (Exception e) {
-            LOGGER.error("Error while reading regions JSON file", e);
-        }
+		JSONObject geolocationJSON = new JSONObject();
+		geolocationJSON.put(PropertiesConstants.LATITUDE_JSON_KEY, centerLatitude);
+		geolocationJSON.put(PropertiesConstants.LONGITUDE_JSON_KEY, centerLongitude);
 
-        return result;
-    }
+		return geolocationJSON;
+	}
+
+	private String getLineWithRegion(String filename, String region) {
+		String result = "";
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			String line = br.readLine();
+			while (line != null && result.isEmpty()) {
+				if (lineRegionMatch(line, region)) {
+					result = line;
+				}
+				line = br.readLine();
+			}
+			br.close();
+		} catch (Exception e) {
+			LOGGER.error("Error while reading regions JSON file", e);
+		}
+
+		return result;
+	}
+
+	private boolean lineRegionMatch(String line, String region) {
+		String[] lineInfoColumns = line.split(",");
+		String linePath = lineInfoColumns[0];
+		String lineRow = lineInfoColumns[1];
+
+		while (linePath.length() < 3) {
+			linePath = "0" + linePath;
+		}
+		while (lineRow.length() < 3) {
+			lineRow = "0" + lineRow;
+		}
+
+		return region.equals(linePath + lineRow);
+	}
 
     private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
                                              String latitude, String longitude) {
@@ -558,4 +576,49 @@ public class USGSNasaRepository implements Repository {
         }
         return new String();
     }
+    
+    public String getImageName(String dataset, String date, String region) throws Exception {
+		int imageYear = Integer.parseInt(date.substring(0, 4));
+		JSONArray availableImages = this.getAvailableImagesInRange(dataset, imageYear, imageYear,
+				region);
+
+		if (availableImages == null) {
+			throw new Exception(
+					"There isn't any available Image to the given year [" + imageYear + "]");
+		}
+
+		String oldImageName = null;
+		for (int i = 0; i < availableImages.length() && oldImageName == null; i++) {
+			JSONObject json = availableImages.getJSONObject(i);
+
+			String jsonDate = json.getString(PropertiesConstants.ACQUISITION_DATE_JSON_KEY);
+			String jsonDataset = json.getString(PropertiesConstants._DATASET_NAME_JSON_KEY);
+			String jsonRegion = getRegionJSON(json.getString(PropertiesConstants.SUMMARY_JSON_KEY));
+
+			if (date.equals(jsonDate) && dataset.equals(jsonDataset) && region.equals(jsonRegion)) {
+				oldImageName = json.getString(PropertiesConstants.ENTITY_ID_JSON_KEY);
+			}
+		}
+
+		if (oldImageName == null) {
+			throw new NotFoundException("Image dataset=" + dataset + ", date=" + date + "region="
+					+ region + " not found at USGS repository.");
+		}
+		return oldImageName;
+	}
+	
+	private String getRegionJSON(String summaryValue) {
+		String path = StringUtil.getStringInsidePatterns(summaryValue, "Path: ", ", ");
+		while (path.length() < 3) {
+			path = "0" + path;
+		}
+
+		String row = StringUtil.getStringInsidePatterns(summaryValue, "Row: ", "\"}");
+		while (row.length() < 3) {
+			row = "0" + row;
+		}
+
+		return path + row;
+	}
+    
 }
