@@ -36,6 +36,7 @@ public class PropertiesConstants {
 	public static final String ACQUISITION_DATE_JSON_KEY = "acquisitionDate";
     public static final String _DATASET_NAME_JSON_KEY = "dataset_name";
     public static final String SUMMARY_JSON_KEY = "summary";
+    public static final String DATA_ACCESS_URL_JSON_KEY = "dataAccessUrl";
 
 	// Metadata constants
 	public static final String METADATA_SCENE_MTL_FILE_PATH = "scene_mtl_file_path";

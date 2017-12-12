@@ -410,8 +410,8 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
-                                   String product) {
+	protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
+			String product) {
 
         JSONObject downloadJSONObj = new JSONObject();
         try {
@@ -445,7 +445,7 @@ public class USGSNasaRepository implements Repository {
 			JSONObject geolocationJSON = getRegionGeolocation(region);
 			latitude = geolocationJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
 			longitude = geolocationJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
-		} catch (JSONException e) {
+		} catch (Exception e) {
 			LOGGER.error("Error while getting coordinates from region JSON", e);
 			return null;
 		}
@@ -457,14 +457,19 @@ public class USGSNasaRepository implements Repository {
 		String fileLine = getLineWithRegion(PropertiesConstants.TILES_COORDINATES_FILE_PATH,
 				region);
 
-		String[] lineColumns = fileLine.split(",");
-		String centerLatitude = lineColumns[2].replace(',', '.');
-		String centerLongitude = lineColumns[3].replace(',', '.');
+		JSONObject geolocationJSON = null;
+		if (fileLine != null && !fileLine.isEmpty()) {
+			String[] lineColumns = fileLine.split(",");
+			
+			String centerLatitude = lineColumns[2].replace("\"", "") + "."
+					+ lineColumns[3].replace("\"", "");
+			String centerLongitude = lineColumns[4].replace("\"", "") + "."
+					+ lineColumns[5].replace("\"", "");
 
-		JSONObject geolocationJSON = new JSONObject();
-		geolocationJSON.put(PropertiesConstants.LATITUDE_JSON_KEY, centerLatitude);
-		geolocationJSON.put(PropertiesConstants.LONGITUDE_JSON_KEY, centerLongitude);
-
+			geolocationJSON = new JSONObject();
+			geolocationJSON.put(PropertiesConstants.LATITUDE_JSON_KEY, centerLatitude);
+			geolocationJSON.put(PropertiesConstants.LONGITUDE_JSON_KEY, centerLongitude);
+		}
 		return geolocationJSON;
 	}
 
@@ -483,27 +488,30 @@ public class USGSNasaRepository implements Repository {
 		} catch (Exception e) {
 			LOGGER.error("Error while reading regions JSON file", e);
 		}
-
 		return result;
 	}
 
 	private boolean lineRegionMatch(String line, String region) {
 		String[] lineInfoColumns = line.split(",");
-		String linePath = lineInfoColumns[0];
-		String lineRow = lineInfoColumns[1];
+		boolean result = false;
+		if(lineInfoColumns.length >= 12) {
+			String linePath = lineInfoColumns[0];
+			String lineRow = lineInfoColumns[1];
 
-		while (linePath.length() < 3) {
-			linePath = "0" + linePath;
+			while (linePath.length() < 3) {
+				linePath = "0" + linePath;
+			}
+			while (lineRow.length() < 3) {
+				lineRow = "0" + lineRow;
+			}
+			
+			result = region.equals(linePath + lineRow);
 		}
-		while (lineRow.length() < 3) {
-			lineRow = "0" + lineRow;
-		}
-
-		return region.equals(linePath + lineRow);
+		return result;
 	}
 
-    private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
-                                             String latitude, String longitude) {
+	private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
+			String latitude, String longitude) {
 
         JSONObject searchJSONObj = new JSONObject();
         try {
@@ -532,8 +540,9 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
-                                  String longitude, JSONObject searchJSONObj) throws JSONException {
+	private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
+			String longitude, JSONObject searchJSONObj) throws JSONException {
+		
         JSONObject spatialFilterObj = new JSONObject();
         JSONObject temporalFilterObj = new JSONObject();
         JSONObject lowerLeftObj = new JSONObject();
@@ -577,13 +586,13 @@ public class USGSNasaRepository implements Repository {
         return new String();
     }
     
-    public String getImageName(String dataset, String date, String region) throws Exception {
+	public String getImageName(String dataset, String date, String region) throws Exception {
 		int imageYear = Integer.parseInt(date.substring(0, 4));
 		JSONArray availableImages = this.getAvailableImagesInRange(dataset, imageYear, imageYear,
 				region);
 
 		if (availableImages == null) {
-			throw new Exception(
+			throw new NotFoundException(
 					"There isn't any available Image to the given year [" + imageYear + "]");
 		}
 
@@ -591,8 +600,11 @@ public class USGSNasaRepository implements Repository {
 		for (int i = 0; i < availableImages.length() && oldImageName == null; i++) {
 			JSONObject json = availableImages.getJSONObject(i);
 
+			String jsonDataset = StringUtil.getStringInsidePatterns(
+					json.getString(PropertiesConstants.DATA_ACCESS_URL_JSON_KEY), "dataset_name=",
+					"&ordered");
+			
 			String jsonDate = json.getString(PropertiesConstants.ACQUISITION_DATE_JSON_KEY);
-			String jsonDataset = json.getString(PropertiesConstants._DATASET_NAME_JSON_KEY);
 			String jsonRegion = getRegionJSON(json.getString(PropertiesConstants.SUMMARY_JSON_KEY));
 
 			if (date.equals(jsonDate) && dataset.equals(jsonDataset) && region.equals(jsonRegion)) {
@@ -613,7 +625,7 @@ public class USGSNasaRepository implements Repository {
 			path = "0" + path;
 		}
 
-		String row = StringUtil.getStringInsidePatterns(summaryValue, "Row: ", "\"}");
+		String row = StringUtil.getStringInsidePatterns(summaryValue, "Row: ", "");
 		while (row.length() < 3) {
 			row = "0" + row;
 		}

@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 import core.USGSNasaRepository;
 import model.ImageTask;
 import utils.MetadataUtilImpl;
-import utils.NotFoundException;
 import utils.PropertiesConstants;
 
 public class USGSController {
@@ -39,7 +38,8 @@ public class USGSController {
 		properties = loadProperties();
 		setUsgsRepository(new USGSNasaRepository(pathStorage, pathMetadata, properties));
 		usgsRepository.handleAPIKeyUpdate();
-		setImageTask(new ImageTask(getImageName(dataSet, region, date), dataSet, region, date));
+		String imageName = getImageName(dataSet, region, date);
+		setImageTask(new ImageTask(imageName, dataSet, region, date));
 		imageTask.setDownloadLink(usgsRepository.getImageDownloadLink(imageTask.getName()));
 	}
 
@@ -97,19 +97,12 @@ public class USGSController {
 		String imageName = null;
 		try {
 			imageName = this.usgsRepository.getImageName(dataSet, date, region);
-		} catch (NotFoundException e) {
+		} catch (Exception e) {
 			/**
 			 * Tried to make download but a Malformed URL was given
 			 */
 			LOGGER.error("Not found the Image in the USGS Repository", e);
 			System.exit(3);
-		} catch (Exception e) {
-			/**
-			 * Tried to get the Image name but a error occurred in the process
-			 */
-			LOGGER.error("Error while trying to get the Image name of dataset=" + dataSet
-					+ " region=" + region + " date=" + date);
-			System.exit(8);
 		}
 		return imageName;
 	}
