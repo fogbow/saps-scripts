@@ -149,7 +149,8 @@ public class USGSNasaRepository implements Repository {
 
         String loginJsonRequest = "jsonRequest=" + loginJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                loginJsonRequest, usgsJsonUrl + File.separator + "login");
+                loginJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "login");
         LOGGER.debug("Command=" + builder.command());
 
         return executeProcess(builder);
@@ -329,7 +330,8 @@ public class USGSNasaRepository implements Repository {
 
         String metadataJsonRequest = "jsonRequest=" + metadataJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                metadataJsonRequest, usgsJsonUrl + File.separator + "metadata");
+                metadataJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "metadata");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }
@@ -379,36 +381,38 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private String usgsDownloadURL(String dataset, String sceneId, String node, String product) throws Exception {
-        // GET DOWNLOAD LINKS
-        String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+	private String usgsDownloadURL(String dataset, String sceneId, String node, String product)
+			throws Exception {
+		// GET DOWNLOAD LINKS
+		String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+		
+		try {
+			JSONObject downloadRequestResponse = new JSONObject(response);
+			// if error code == null
 
-        try {
-            JSONObject downloadRequestResponse = new JSONObject(response);
-            //if error code == null
+			JSONArray downloadLinkArray = downloadRequestResponse
+					.optJSONArray(PropertiesConstants.DATA_JSON_KEY);
 
-            JSONArray downloadLinkArray = downloadRequestResponse.optJSONArray(
-                    PropertiesConstants.DATA_JSON_KEY);
+			if (downloadLinkArray.length() > 0) {
+				String downloadLink = downloadLinkArray.getJSONObject(0)
+						.getString(PropertiesConstants.URL_JSON_KEY).replace("\\/", "/");
+				downloadLink = downloadLink.replace("[", "");
+				downloadLink = downloadLink.replace("]", "");
+				downloadLink = downloadLink.replace("\"", "");
 
-            if(downloadLinkArray.length() > 0) {
-                String downloadLink = downloadLinkArray.getString(0).replace("\\/", "/");
-                downloadLink = downloadLink.replace("[", "");
-                downloadLink = downloadLink.replace("]", "");
-                downloadLink = downloadLink.replace("\"", "");
+				LOGGER.debug("downloadLink=" + downloadLink);
+				if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
+					LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
+					return downloadLink;
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error while formating request response", e);
+			throw e;
+		}
 
-                LOGGER.debug("downloadLink=" + downloadLink);
-                if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
-                    LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
-                    return downloadLink;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error while formating request response", e);
-            throw e;
-        }
-
-        return null;
-    }
+		return null;
+	}
 
 	protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
 			String product) {
@@ -423,7 +427,8 @@ public class USGSNasaRepository implements Repository {
 
         String downloadJsonRequest = "jsonRequest=" + downloadJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                downloadJsonRequest, usgsJsonUrl + File.separator + "download");
+                downloadJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "download");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }

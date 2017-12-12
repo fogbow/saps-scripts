@@ -132,8 +132,8 @@ public class USGSNasaRepositoryTest {
 
 	@Test
 	public void testCorrectDownloadLinkFromResponse() throws Exception {
-		String fakeDownloadResponse = "{\"errorCode\":null,\"error\":\"\",\"data\":[\"https:\\/\\/dds.cr.usgs.gov\\/ltaauth\\/hsm\\/lta3\\/lsat_ortho\\/gls_1975\\/046\\/034\\/p046r034_1x19720725.tar.gz?id=erjal92rc4o2070t76uqbispk4&iid=P046R034_1X19720725&did=338419617&ver=production\"],\"api_version\":\"1.3.0\",\"access_level\":\"approved\",\"executionTime\":1.0584261417389}";
-		String expectedDownloadLink = "https://dds.cr.usgs.gov/ltaauth/hsm/lta3/lsat_ortho/gls_1975/046/034/p046r034_1x19720725.tar.gz?id=erjal92rc4o2070t76uqbispk4&iid=P046R034_1X19720725&did=338419617&ver=production";
+		String fakeDownloadResponse = "{\"errorCode\":null,\"error\":\"\",\"data\":[{\"entityId\":\"LE72150652000013EDC00\",\"product\":\"STANDARD\",\"url\":\"https:\\/\\/dds.cr.usgs.gov\\/ltaauth\\/hsm\\/lsat1\\/collection01\\/etm\\/T1\\/2000\\/215\\/65\\/LE07_L1TP_215065_20000113_20170215_01_T1.tar.gz?id=6506kfds27fj6f2dj2ffh60u43&iid=LE72150652000013EDC00&did=362814459&ver=production\"}],\"api_version\":\"1.4.0\",\"access_level\":\"approved\",\"catalog_id\":\"EE\",\"executionTime\":1.1173131465912}";
+		String expectedDownloadLink = "https://dds.cr.usgs.gov/ltaauth/hsm/lsat1/collection01/etm/T1/2000/215/65/LE07_L1TP_215065_20000113_20170215_01_T1.tar.gz?id=6506kfds27fj6f2dj2ffh60u43&iid=LE72150652000013EDC00&did=362814459&ver=production";
 
 		USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(sapsResultsPath,
 				sapsMetadataPath, usgsJsonUrl, usgsUserName, usgsPassword, new Properties()));
