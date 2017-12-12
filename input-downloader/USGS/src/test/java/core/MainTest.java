@@ -15,11 +15,13 @@ import static org.mockito.Mockito.*;
 
 public class MainTest {
 
-    private String sebalResultsPath;
+    private String sapsResultsPath;
+    private String sapsMetadataPath;
 
     @Before
     public void setUp(){
-        sebalResultsPath = "/tmp/results";
+        sapsResultsPath = "/tmp/results";
+        sapsMetadataPath = "/tmp/metadata";
     }
 
     @Rule
@@ -27,7 +29,7 @@ public class MainTest {
 
     @After
     public void cleansDataDir() throws IOException {
-        File f = new File(sebalResultsPath + "/data");
+        File f = new File(sapsResultsPath + "/data");
         FileUtils.deleteDirectory(f);
     }
 
@@ -41,16 +43,18 @@ public class MainTest {
     @Test
     public void testMalFormedURLDownload() throws Exception {
         exit.expectSystemExitWithStatus(3);
-        USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01", sebalResultsPath);
+		USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01",
+				sapsResultsPath, sapsMetadataPath);
         USGSController.startDownload();
     }
 
     @Test
     public void testUnknownImageTaskName() throws Exception {
-        exit.expectSystemExitWithStatus(4);
+        exit.expectSystemExitWithStatus(3);
 
-        USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01", sebalResultsPath);
-        Properties properties = USGSController.loadProperties();
+		USGSController USGSController = new USGSController("landsat_5", "215065", "1984-01-27",
+				sapsResultsPath, sapsMetadataPath);
+        Properties properties = main.USGSController.loadProperties();
 
         USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(properties));
         USGSController.setUsgsRepository(usgsNasaRepository);

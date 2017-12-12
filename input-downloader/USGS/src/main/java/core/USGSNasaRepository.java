@@ -1,31 +1,49 @@
 package core;
 
-import model.ImageTask;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import utils.ProcessUtil;
-import utils.PropertiesConstants;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import model.ImageTask;
+import utils.NotFoundException;
+import utils.PropertiesConstants;
+import utils.StringUtil;
 
 public class USGSNasaRepository implements Repository {
 
-    private final String sebalResultsPath;
+    private final String sapsResultsPath;
 
     private final String usgsJsonUrl;
     private final String usgsUserName;
     private final String usgsPassword;
     private String usgsAPIKey;
+
+    /*
+      the number of milliseconds until this method will timeout if no connection could be established to the source
+     */
+    private int downloadConnectionTimeout;
+    /*
+      the number of milliseconds until this method will timeout if no data could be read from the source
+     */
+    private int downloadReadTimeout;
 
     // nodes
     private static final String EARTH_EXPLORER_NODE = "EE";
@@ -38,42 +56,61 @@ public class USGSNasaRepository implements Repository {
     private static final String LAST_YEAR_SUFFIX = "-12-31";
     private static final int MAX_RESULTS = 50000;
 
-    // response constants
-    private static final String USGS_NULL_RESPONSE = "null";
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
+    private static final int DEFAULT_READ_TIMEOUT = 300000;
 
     private static final Logger LOGGER = Logger.getLogger(USGSNasaRepository.class);
 
     public USGSNasaRepository(Properties properties) {
-        this(properties.getProperty(PropertiesConstants.SEBAL_RESULTS_PATH),
-                properties.getProperty(PropertiesConstants.USGS_JSON_URL),
-                properties.getProperty(PropertiesConstants.USGS_USERNAME),
-                properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+		this(properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH),
+				properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH),
+				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
+				properties.getProperty(PropertiesConstants.USGS_USERNAME),
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD),
+                properties);
     }
 
-    public USGSNasaRepository(String sebalResultsPath, Properties properties) {
-        this(sebalResultsPath,
-                properties.getProperty(PropertiesConstants.USGS_JSON_URL),
-                properties.getProperty(PropertiesConstants.USGS_USERNAME),
-                properties.getProperty(PropertiesConstants.USGS_PASSWORD));
+	public USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
+			Properties properties) {
+        this(sapsResultsPath, sapsMetadataPath,
+				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
+				properties.getProperty(PropertiesConstants.USGS_USERNAME),
+				properties.getProperty(PropertiesConstants.USGS_PASSWORD),
+                properties);
     }
 
-    protected USGSNasaRepository(String sebalResultsPath, String usgsJsonUrl,
-                                 String usgsUserName, String usgsPassword) {
+	protected USGSNasaRepository(String sapsResultsPath, String sapsMetadataPath,
+			String usgsJsonUrl, String usgsUserName, String usgsPassword, Properties properties) {
 
         Validate.notNull(usgsJsonUrl, "usgsJsonUrl cannot be null");
         Validate.notNull(usgsUserName, "usgsUserName cannot be null");
-        Validate.notNull(sebalResultsPath, "sebalResultsPath cannot be null");
+        Validate.notNull(sapsResultsPath, "sebalResultsPath cannot be null");
+        Validate.notNull(sapsMetadataPath, "sebalMetadataPath cannot be null");
         Validate.notNull(usgsPassword, "usgsPassword cannot be null");
 
-        this.sebalResultsPath = sebalResultsPath;
+        this.sapsResultsPath = sapsResultsPath;
         this.usgsJsonUrl = usgsJsonUrl;
         this.usgsUserName = usgsUserName;
         this.usgsPassword = usgsPassword;
 
-        createDirectory(sebalResultsPath);
+        if(properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT) == null ||
+                properties.getProperty(PropertiesConstants.CONNECTION_TIMEOUT).isEmpty()){
+            this.downloadConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+        } else {
+            this.downloadConnectionTimeout = Integer.parseInt(properties.getProperty(
+                    PropertiesConstants.CONNECTION_TIMEOUT));
+        }
 
-        /*Validate.isTrue(directoryExists(sebalResultsPath),
-                "Sebal sebalResultsPath directory " + sebalResultsPath + " does not exist.");*/
+        if(properties.getProperty(PropertiesConstants.READ_TIMEOUT) == null ||
+                properties.getProperty(PropertiesConstants.READ_TIMEOUT).isEmpty()){
+            this.downloadReadTimeout = DEFAULT_READ_TIMEOUT;
+        } else {
+            this.downloadReadTimeout = Integer.parseInt(properties.getProperty(
+                    PropertiesConstants.READ_TIMEOUT));
+        }
+
+        createDirectory(sapsResultsPath);
+        createDirectory(sapsMetadataPath);
     }
 
     public void handleAPIKeyUpdate() throws InterruptedException {
@@ -112,7 +149,8 @@ public class USGSNasaRepository implements Repository {
 
         String loginJsonRequest = "jsonRequest=" + loginJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                loginJsonRequest, usgsJsonUrl + File.separator + "login");
+                loginJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "login");
         LOGGER.debug("Command=" + builder.command());
 
         return executeProcess(builder);
@@ -135,14 +173,12 @@ public class USGSNasaRepository implements Repository {
     }
 
     @Override
-    public void downloadImage(ImageTask imageData) throws Exception {
-        // TODO: insert also the metadata directory
-
-        createDirectory(sebalResultsPath);
-        File file = new File(sebalResultsPath);
+    public void downloadImage(ImageTask imageData) throws IOException, InterruptedException {
+        createDirectory(sapsResultsPath);
+        File file = new File(sapsResultsPath);
         if (file.exists()) {
             System.setProperty("https.protocols", "TLSv1.2");
-            String localImageFilePath = imageFilePath(imageData, sebalResultsPath);
+            String localImageFilePath = imageFilePath(imageData, sapsResultsPath);
 
             // clean if already exists (garbage collection)
             File localImageFile = new File(localImageFilePath);
@@ -154,26 +190,22 @@ public class USGSNasaRepository implements Repository {
 
             LOGGER.info("Downloading image " + imageData.getName() + " into file "
                     + localImageFilePath);
-            try{
-                int downloadExitValue = downloadInto(imageData, localImageFilePath);
-                if (downloadExitValue != 0){
-                    System.exit(downloadExitValue);
-                }
-                unpackTargz(localImageFilePath);
-                localImageFile.delete();
-                String collectionTierName = getCollectionTierName();
-                runGetStationData(collectionTierName, sebalResultsPath);
-            } catch (Exception e){
-                throw e;
+            int downloadExitValue = downloadInto(imageData, localImageFilePath);
+            if (downloadExitValue != 0){
+                System.exit(downloadExitValue);
             }
+            unpackTargz(localImageFilePath);
+            localImageFile.delete();
+            String collectionTierName = getCollectionTierName();
+            runGetStationData(collectionTierName, sapsResultsPath);
         } else {
-            throw new IOException("An error occurred while creating " + sebalResultsPath + " directory");
+            throw new IOException("An error occurred while creating " + sapsResultsPath + " directory");
         }
     }
 
     private void runGetStationData(String collectionTierName, String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("/home/ubuntu/get-station-data.sh", collectionTierName,
-                localImageFilePath);
+		ProcessBuilder builder = new ProcessBuilder(PropertiesConstants.GET_STATIONS_SCRIPT_PATH,
+				collectionTierName, localImageFilePath);
         LOGGER.info("Starting get station data script.");
         LOGGER.info("Executing process: " + builder.command());
         try {
@@ -185,18 +217,9 @@ public class USGSNasaRepository implements Repository {
             throw e;
         }
     }
-
-    private void logProcessOutput(Process p) throws IOException {
-        PrintWriter out = new PrintWriter("/home/ubuntu/results/log/get_station.out");
-        PrintWriter err = new PrintWriter("/home/ubuntu/results/log/get_station.err");
-        out.println(ProcessUtil.getOutput(p));
-        err.println(ProcessUtil.getError(p));
-        out.flush();
-        err.flush();
-    }
-
+    
     private String getCollectionTierName() {
-        File imagesDir = new File(sebalResultsPath);
+        File imagesDir = new File(sapsResultsPath);
         for(File file: imagesDir.listFiles()){
             String patternString = "_MTL.txt";
             Pattern pattern = Pattern.compile(patternString);
@@ -209,7 +232,7 @@ public class USGSNasaRepository implements Repository {
     }
 
     private void unpackTargz(String localImageFilePath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder("tar", "-xzf", localImageFilePath, "-C", sebalResultsPath);
+        ProcessBuilder builder = new ProcessBuilder("tar", "-xzf", localImageFilePath, "-C", sapsResultsPath);
         LOGGER.info("Started to unpack file: " + localImageFilePath);
         try {
             Process p = builder.start();
@@ -226,45 +249,39 @@ public class USGSNasaRepository implements Repository {
     }
 
     protected String resultsMetadataDirPath(ImageTask imageData) {
-        return sebalResultsPath + File.separator + "metadata" + File.separator
+        return sapsResultsPath + File.separator + "metadata" + File.separator
                 + imageData.getName();
     }
 
-    private int downloadInto(ImageTask imageData, String targetFilePath) throws Exception{
-        ProcessBuilder builder = new ProcessBuilder("curl", "-L", "-o", targetFilePath, "-X",
-                "GET", imageData.getDownloadLink(), "--speed-limit", PropertiesConstants.SPEED_LIMIT,
-                "--speed-time", PropertiesConstants.SPEED_TIME);
-        LOGGER.debug("Command=" + builder.command());
-
-        if(isReachable(imageData.getDownloadLink())){
-            try {
-                Process p = builder.start();
-                p.waitFor();
-                LOGGER.debug("ProcessOutput=" + p.exitValue());
-                return p.exitValue();
-            } catch (Exception e) {
-                LOGGER.error("Error while downloading image " + imageData.getName()
-                        + " from USGS", e);
-                throw e;
+    private int downloadInto(ImageTask imageData, String targetFilePath) throws IOException {
+        try {
+            if(isReachable(imageData.getDownloadLink())){
+                FileUtils.copyURLToFile(new URL(imageData.getDownloadLink()),
+                        new File(targetFilePath), downloadConnectionTimeout, downloadReadTimeout);
+            }else{
+                LOGGER.info("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
+                return 5;
             }
-        }else{
-            IOException e = new IOException("The given URL: " + imageData.getDownloadLink() + " is not reachable.");
-            LOGGER.error("The given URL: " + imageData.getDownloadLink() + " is not reachable.", e);
+        } catch (IOException e) {
+            LOGGER.info("The given URL: " + imageData.getDownloadLink() + " is not valid.");
             throw e;
         }
+        return 0;
     }
 
     public static boolean isReachable(String URLName) throws IOException {
         boolean result = false;
         try {
             HttpURLConnection con = (HttpURLConnection) new URL(URLName).openConnection();
+            con.setConnectTimeout(5000);
+            con.setReadTimeout(5000);
             con.connect();
             result = con.getResponseCode() >= 200 && con.getResponseCode() < 400;
         } catch (MalformedURLException e){
-            LOGGER.error("The given URL: " + URLName + " is not valid.", e);
+            LOGGER.error("The given URL: " + URLName + " is not valid.");
             throw new MalformedURLException("The given URL: " + URLName + " is not valid.");
         } catch (UnknownHostException e){
-            LOGGER.error("The DNS could not find the following URL: " + URLName, e);
+            LOGGER.error("The DNS could not find the following URL: " + URLName);
             throw new UnknownHostException("The DNS could not find the following URL: " + URLName);
         }
         return result;
@@ -313,7 +330,8 @@ public class USGSNasaRepository implements Repository {
 
         String metadataJsonRequest = "jsonRequest=" + metadataJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                metadataJsonRequest, usgsJsonUrl + File.separator + "metadata");
+                metadataJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "metadata");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }
@@ -363,39 +381,41 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private String usgsDownloadURL(String dataset, String sceneId, String node, String product) throws Exception {
-        // GET DOWNLOAD LINKS
-        String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+	private String usgsDownloadURL(String dataset, String sceneId, String node, String product)
+			throws Exception {
+		// GET DOWNLOAD LINKS
+		String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+		
+		try {
+			JSONObject downloadRequestResponse = new JSONObject(response);
+			// if error code == null
 
-        try {
-            JSONObject downloadRequestResponse = new JSONObject(response);
-            //if error code == null
+			JSONArray downloadLinkArray = downloadRequestResponse
+					.optJSONArray(PropertiesConstants.DATA_JSON_KEY);
 
-            JSONArray downloadLinkArray = downloadRequestResponse.optJSONArray(
-                    PropertiesConstants.DATA_JSON_KEY);
+			if (downloadLinkArray.length() > 0) {
+				String downloadLink = downloadLinkArray.getJSONObject(0)
+						.getString(PropertiesConstants.URL_JSON_KEY).replace("\\/", "/");
+				downloadLink = downloadLink.replace("[", "");
+				downloadLink = downloadLink.replace("]", "");
+				downloadLink = downloadLink.replace("\"", "");
 
-            if(downloadLinkArray.length() > 0) {
-                String downloadLink = downloadLinkArray.getString(0).replace("\\/", "/");
-                downloadLink = downloadLink.replace("[", "");
-                downloadLink = downloadLink.replace("]", "");
-                downloadLink = downloadLink.replace("\"", "");
+				LOGGER.debug("downloadLink=" + downloadLink);
+				if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
+					LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
+					return downloadLink;
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error while formating request response", e);
+			throw e;
+		}
 
-                LOGGER.debug("downloadLink=" + downloadLink);
-                if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
-                    LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
-                    return downloadLink;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error while formating request response", e);
-            throw e;
-        }
+		return null;
+	}
 
-        return null;
-    }
-
-    protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
-                                   String product) {
+	protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
+			String product) {
 
         JSONObject downloadJSONObj = new JSONObject();
         try {
@@ -407,7 +427,8 @@ public class USGSNasaRepository implements Repository {
 
         String downloadJsonRequest = "jsonRequest=" + downloadJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                downloadJsonRequest, usgsJsonUrl + File.separator + "download");
+                downloadJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "download");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }
@@ -421,57 +442,81 @@ public class USGSNasaRepository implements Repository {
     }
 
     public JSONArray getAvailableImagesInRange(String dataSet, int firstYear, int lastYear,
-                                               String region) {
-        String latitude;
-        String longitude;
+			String region) {
+		String latitude;
+		String longitude;
 
-        try {
-            JSONObject regionJSON = getRegionJSON(region);
-            latitude = regionJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
-            longitude = regionJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
-        } catch (JSONException e) {
-            LOGGER.error("Error while getting coordinates from region JSON", e);
-            return null;
-        }
+		try {
+			JSONObject geolocationJSON = getRegionGeolocation(region);
+			latitude = geolocationJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
+			longitude = geolocationJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
+		} catch (Exception e) {
+			LOGGER.error("Error while getting coordinates from region JSON", e);
+			return null;
+		}
 
-        return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
-    }
+		return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
+	}
 
-    private JSONObject getRegionJSON(String region) throws JSONException {
-        String jsonData = readFile(PropertiesConstants.TILES_COORDINATES_FILE_PATH);
-        JSONObject regionsJSON = new JSONObject(jsonData);
-        JSONArray tiles = regionsJSON.getJSONArray(PropertiesConstants.TILES_JSON_KEY);
-        for (int i = 0; i < tiles.length(); i++) {
-            if (tiles.getJSONObject(i).getString(PropertiesConstants.TILE_ID_JSON_KEY)
-                    .equals(region)) {
-                return tiles.getJSONObject(i);
-            }
-        }
+	public JSONObject getRegionGeolocation(String region) throws JSONException {
+		String fileLine = getLineWithRegion(PropertiesConstants.TILES_COORDINATES_FILE_PATH,
+				region);
 
-        return null;
-    }
+		JSONObject geolocationJSON = null;
+		if (fileLine != null && !fileLine.isEmpty()) {
+			String[] lineColumns = fileLine.split(",");
+			
+			String centerLatitude = lineColumns[2].replace("\"", "") + "."
+					+ lineColumns[3].replace("\"", "");
+			String centerLongitude = lineColumns[4].replace("\"", "") + "."
+					+ lineColumns[5].replace("\"", "");
 
-    private static String readFile(String filename) {
-        String result = "";
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filename));
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                line = br.readLine();
-            }
-            result = sb.toString();
-            br.close();
-        } catch (Exception e) {
-            LOGGER.error("Error while reading regions JSON file", e);
-        }
+			geolocationJSON = new JSONObject();
+			geolocationJSON.put(PropertiesConstants.LATITUDE_JSON_KEY, centerLatitude);
+			geolocationJSON.put(PropertiesConstants.LONGITUDE_JSON_KEY, centerLongitude);
+		}
+		return geolocationJSON;
+	}
 
-        return result;
-    }
+	private String getLineWithRegion(String filename, String region) {
+		String result = "";
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			String line = br.readLine();
+			while (line != null && result.isEmpty()) {
+				if (lineRegionMatch(line, region)) {
+					result = line;
+				}
+				line = br.readLine();
+			}
+			br.close();
+		} catch (Exception e) {
+			LOGGER.error("Error while reading regions JSON file", e);
+		}
+		return result;
+	}
 
-    private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
-                                             String latitude, String longitude) {
+	private boolean lineRegionMatch(String line, String region) {
+		String[] lineInfoColumns = line.split(",");
+		boolean result = false;
+		if(lineInfoColumns.length >= 12) {
+			String linePath = lineInfoColumns[0];
+			String lineRow = lineInfoColumns[1];
+
+			while (linePath.length() < 3) {
+				linePath = "0" + linePath;
+			}
+			while (lineRow.length() < 3) {
+				lineRow = "0" + lineRow;
+			}
+			
+			result = region.equals(linePath + lineRow);
+		}
+		return result;
+	}
+
+	private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
+			String latitude, String longitude) {
 
         JSONObject searchJSONObj = new JSONObject();
         try {
@@ -500,8 +545,9 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
-                                  String longitude, JSONObject searchJSONObj) throws JSONException {
+	private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
+			String longitude, JSONObject searchJSONObj) throws JSONException {
+		
         JSONObject spatialFilterObj = new JSONObject();
         JSONObject temporalFilterObj = new JSONObject();
         JSONObject lowerLeftObj = new JSONObject();
@@ -544,4 +590,52 @@ public class USGSNasaRepository implements Repository {
         }
         return new String();
     }
+    
+	public String getImageName(String dataset, String date, String region) throws Exception {
+		int imageYear = Integer.parseInt(date.substring(0, 4));
+		JSONArray availableImages = this.getAvailableImagesInRange(dataset, imageYear, imageYear,
+				region);
+
+		if (availableImages == null) {
+			throw new NotFoundException(
+					"There isn't any available Image to the given year [" + imageYear + "]");
+		}
+
+		String oldImageName = null;
+		for (int i = 0; i < availableImages.length() && oldImageName == null; i++) {
+			JSONObject json = availableImages.getJSONObject(i);
+
+			String jsonDataset = StringUtil.getStringInsidePatterns(
+					json.getString(PropertiesConstants.DATA_ACCESS_URL_JSON_KEY), "dataset_name=",
+					"&ordered");
+			
+			String jsonDate = json.getString(PropertiesConstants.ACQUISITION_DATE_JSON_KEY);
+			String jsonRegion = getRegionJSON(json.getString(PropertiesConstants.SUMMARY_JSON_KEY));
+
+			if (date.equals(jsonDate) && dataset.equals(jsonDataset) && region.equals(jsonRegion)) {
+				oldImageName = json.getString(PropertiesConstants.ENTITY_ID_JSON_KEY);
+			}
+		}
+
+		if (oldImageName == null) {
+			throw new NotFoundException("Image dataset=" + dataset + ", date=" + date + "region="
+					+ region + " not found at USGS repository.");
+		}
+		return oldImageName;
+	}
+	
+	private String getRegionJSON(String summaryValue) {
+		String path = StringUtil.getStringInsidePatterns(summaryValue, "Path: ", ", ");
+		while (path.length() < 3) {
+			path = "0" + path;
+		}
+
+		String row = StringUtil.getStringInsidePatterns(summaryValue, "Row: ", "");
+		while (row.length() < 3) {
+			row = "0" + row;
+		}
+
+		return path + row;
+	}
+    
 }

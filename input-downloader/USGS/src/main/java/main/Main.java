@@ -13,17 +13,21 @@ public class Main {
      * arg2: The Image Region
      * arg3: The Image date
      * arg4: The path to store the image downloaded
+     * arg5: The path to store the execution metadata
      *
-      */
-    public static void main(String[] args) throws Exception {
-        checkNumberOfArgs(args);
-        USGSController USGSController = new USGSController(args[0], args[1], args[2], args[3]);
-        USGSController.startDownload();
-    }
+     */
+	public static void main(String[] args) throws Exception {
+		checkNumberOfArgs(args);
 
-    private static void checkNumberOfArgs(String[] args) {
-        if(args.length != 4){
-            System.exit(6);
-        }
-    }
+		USGSController USGSController = new USGSController(args[0], args[1], args[2], args[3],
+				args[4]);
+		USGSController.startDownload();
+		USGSController.saveMetadata();
+	}
+
+	private static void checkNumberOfArgs(String[] args) {
+		if (args.length != 5) {
+			System.exit(6);
+		}
+	}
 }
