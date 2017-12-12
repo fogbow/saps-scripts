@@ -50,11 +50,11 @@ public class MainTest {
 
     @Test
     public void testUnknownImageTaskName() throws Exception {
-        exit.expectSystemExitWithStatus(4);
+        exit.expectSystemExitWithStatus(3);
 
-		USGSController USGSController = new USGSController("landsat_5", "fake-region", "1984-01-01",
+		USGSController USGSController = new USGSController("landsat_5", "215065", "1984-01-27",
 				sapsResultsPath, sapsMetadataPath);
-        Properties properties = USGSController.loadProperties();
+        Properties properties = main.USGSController.loadProperties();
 
         USGSNasaRepository usgsNasaRepository = spy(new USGSNasaRepository(properties));
         USGSController.setUsgsRepository(usgsNasaRepository);

@@ -23,7 +23,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import model.ImageTask;
+import utils.NotFoundException;
 import utils.PropertiesConstants;
+import utils.StringUtil;
 
 public class USGSNasaRepository implements Repository {
 
@@ -147,7 +149,8 @@ public class USGSNasaRepository implements Repository {
 
         String loginJsonRequest = "jsonRequest=" + loginJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                loginJsonRequest, usgsJsonUrl + File.separator + "login");
+                loginJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "login");
         LOGGER.debug("Command=" + builder.command());
 
         return executeProcess(builder);
@@ -327,7 +330,8 @@ public class USGSNasaRepository implements Repository {
 
         String metadataJsonRequest = "jsonRequest=" + metadataJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                metadataJsonRequest, usgsJsonUrl + File.separator + "metadata");
+                metadataJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "metadata");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }
@@ -377,39 +381,41 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private String usgsDownloadURL(String dataset, String sceneId, String node, String product) throws Exception {
-        // GET DOWNLOAD LINKS
-        String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+	private String usgsDownloadURL(String dataset, String sceneId, String node, String product)
+			throws Exception {
+		// GET DOWNLOAD LINKS
+		String response = getDownloadHttpResponse(dataset, sceneId, node, product);
+		
+		try {
+			JSONObject downloadRequestResponse = new JSONObject(response);
+			// if error code == null
 
-        try {
-            JSONObject downloadRequestResponse = new JSONObject(response);
-            //if error code == null
+			JSONArray downloadLinkArray = downloadRequestResponse
+					.optJSONArray(PropertiesConstants.DATA_JSON_KEY);
 
-            JSONArray downloadLinkArray = downloadRequestResponse.optJSONArray(
-                    PropertiesConstants.DATA_JSON_KEY);
+			if (downloadLinkArray.length() > 0) {
+				String downloadLink = downloadLinkArray.getJSONObject(0)
+						.getString(PropertiesConstants.URL_JSON_KEY).replace("\\/", "/");
+				downloadLink = downloadLink.replace("[", "");
+				downloadLink = downloadLink.replace("]", "");
+				downloadLink = downloadLink.replace("\"", "");
 
-            if(downloadLinkArray.length() > 0) {
-                String downloadLink = downloadLinkArray.getString(0).replace("\\/", "/");
-                downloadLink = downloadLink.replace("[", "");
-                downloadLink = downloadLink.replace("]", "");
-                downloadLink = downloadLink.replace("\"", "");
+				LOGGER.debug("downloadLink=" + downloadLink);
+				if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
+					LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
+					return downloadLink;
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error while formating request response", e);
+			throw e;
+		}
 
-                LOGGER.debug("downloadLink=" + downloadLink);
-                if (downloadLink != null && !downloadLink.isEmpty() && !downloadLink.equals("[]")) {
-                    LOGGER.debug("Image " + sceneId + "download link" + downloadLink + " obtained");
-                    return downloadLink;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error while formating request response", e);
-            throw e;
-        }
+		return null;
+	}
 
-        return null;
-    }
-
-    protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
-                                   String product) {
+	protected String getDownloadHttpResponse(String dataset, String sceneId, String node,
+			String product) {
 
         JSONObject downloadJSONObj = new JSONObject();
         try {
@@ -421,7 +427,8 @@ public class USGSNasaRepository implements Repository {
 
         String downloadJsonRequest = "jsonRequest=" + downloadJSONObj.toString();
         ProcessBuilder builder = new ProcessBuilder("curl", "-X", "POST", "--data",
-                downloadJsonRequest, usgsJsonUrl + File.separator + "download");
+                downloadJsonRequest, usgsJsonUrl + File.separator + "v" + File.separator
+                + USGS_SEARCH_VERSION + File.separator + "download");
         LOGGER.debug("Command=" + builder.command());
         return executeProcess(builder);
     }
@@ -435,57 +442,81 @@ public class USGSNasaRepository implements Repository {
     }
 
     public JSONArray getAvailableImagesInRange(String dataSet, int firstYear, int lastYear,
-                                               String region) {
-        String latitude;
-        String longitude;
+			String region) {
+		String latitude;
+		String longitude;
 
-        try {
-            JSONObject regionJSON = getRegionJSON(region);
-            latitude = regionJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
-            longitude = regionJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
-        } catch (JSONException e) {
-            LOGGER.error("Error while getting coordinates from region JSON", e);
-            return null;
-        }
+		try {
+			JSONObject geolocationJSON = getRegionGeolocation(region);
+			latitude = geolocationJSON.getString(PropertiesConstants.LATITUDE_JSON_KEY);
+			longitude = geolocationJSON.getString(PropertiesConstants.LONGITUDE_JSON_KEY);
+		} catch (Exception e) {
+			LOGGER.error("Error while getting coordinates from region JSON", e);
+			return null;
+		}
 
-        return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
-    }
+		return searchForImagesInRange(dataSet, firstYear, lastYear, latitude, longitude);
+	}
 
-    private JSONObject getRegionJSON(String region) throws JSONException {
-        String jsonData = readFile(PropertiesConstants.TILES_COORDINATES_FILE_PATH);
-        JSONObject regionsJSON = new JSONObject(jsonData);
-        JSONArray tiles = regionsJSON.getJSONArray(PropertiesConstants.TILES_JSON_KEY);
-        for (int i = 0; i < tiles.length(); i++) {
-            if (tiles.getJSONObject(i).getString(PropertiesConstants.TILE_ID_JSON_KEY)
-                    .equals(region)) {
-                return tiles.getJSONObject(i);
-            }
-        }
+	public JSONObject getRegionGeolocation(String region) throws JSONException {
+		String fileLine = getLineWithRegion(PropertiesConstants.TILES_COORDINATES_FILE_PATH,
+				region);
 
-        return null;
-    }
+		JSONObject geolocationJSON = null;
+		if (fileLine != null && !fileLine.isEmpty()) {
+			String[] lineColumns = fileLine.split(",");
+			
+			String centerLatitude = lineColumns[2].replace("\"", "") + "."
+					+ lineColumns[3].replace("\"", "");
+			String centerLongitude = lineColumns[4].replace("\"", "") + "."
+					+ lineColumns[5].replace("\"", "");
 
-    private static String readFile(String filename) {
-        String result = "";
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filename));
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                line = br.readLine();
-            }
-            result = sb.toString();
-            br.close();
-        } catch (Exception e) {
-            LOGGER.error("Error while reading regions JSON file", e);
-        }
+			geolocationJSON = new JSONObject();
+			geolocationJSON.put(PropertiesConstants.LATITUDE_JSON_KEY, centerLatitude);
+			geolocationJSON.put(PropertiesConstants.LONGITUDE_JSON_KEY, centerLongitude);
+		}
+		return geolocationJSON;
+	}
 
-        return result;
-    }
+	private String getLineWithRegion(String filename, String region) {
+		String result = "";
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filename));
+			String line = br.readLine();
+			while (line != null && result.isEmpty()) {
+				if (lineRegionMatch(line, region)) {
+					result = line;
+				}
+				line = br.readLine();
+			}
+			br.close();
+		} catch (Exception e) {
+			LOGGER.error("Error while reading regions JSON file", e);
+		}
+		return result;
+	}
 
-    private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
-                                             String latitude, String longitude) {
+	private boolean lineRegionMatch(String line, String region) {
+		String[] lineInfoColumns = line.split(",");
+		boolean result = false;
+		if(lineInfoColumns.length >= 12) {
+			String linePath = lineInfoColumns[0];
+			String lineRow = lineInfoColumns[1];
+
+			while (linePath.length() < 3) {
+				linePath = "0" + linePath;
+			}
+			while (lineRow.length() < 3) {
+				lineRow = "0" + lineRow;
+			}
+			
+			result = region.equals(linePath + lineRow);
+		}
+		return result;
+	}
+
+	private JSONArray searchForImagesInRange(String dataset, int firstYear, int lastYear,
+			String latitude, String longitude) {
 
         JSONObject searchJSONObj = new JSONObject();
         try {
@@ -514,8 +545,9 @@ public class USGSNasaRepository implements Repository {
         return null;
     }
 
-    private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
-                                  String longitude, JSONObject searchJSONObj) throws JSONException {
+	private void formatSearchJSON(String dataset, int firstYear, int lastYear, String latitude,
+			String longitude, JSONObject searchJSONObj) throws JSONException {
+		
         JSONObject spatialFilterObj = new JSONObject();
         JSONObject temporalFilterObj = new JSONObject();
         JSONObject lowerLeftObj = new JSONObject();
@@ -558,4 +590,52 @@ public class USGSNasaRepository implements Repository {
         }
         return new String();
     }
+    
+	public String getImageName(String dataset, String date, String region) throws Exception {
+		int imageYear = Integer.parseInt(date.substring(0, 4));
+		JSONArray availableImages = this.getAvailableImagesInRange(dataset, imageYear, imageYear,
+				region);
+
+		if (availableImages == null) {
+			throw new NotFoundException(
+					"There isn't any available Image to the given year [" + imageYear + "]");
+		}
+
+		String oldImageName = null;
+		for (int i = 0; i < availableImages.length() && oldImageName == null; i++) {
+			JSONObject json = availableImages.getJSONObject(i);
+
+			String jsonDataset = StringUtil.getStringInsidePatterns(
+					json.getString(PropertiesConstants.DATA_ACCESS_URL_JSON_KEY), "dataset_name=",
+					"&ordered");
+			
+			String jsonDate = json.getString(PropertiesConstants.ACQUISITION_DATE_JSON_KEY);
+			String jsonRegion = getRegionJSON(json.getString(PropertiesConstants.SUMMARY_JSON_KEY));
+
+			if (date.equals(jsonDate) && dataset.equals(jsonDataset) && region.equals(jsonRegion)) {
+				oldImageName = json.getString(PropertiesConstants.ENTITY_ID_JSON_KEY);
+			}
+		}
+
+		if (oldImageName == null) {
+			throw new NotFoundException("Image dataset=" + dataset + ", date=" + date + "region="
+					+ region + " not found at USGS repository.");
+		}
+		return oldImageName;
+	}
+	
+	private String getRegionJSON(String summaryValue) {
+		String path = StringUtil.getStringInsidePatterns(summaryValue, "Path: ", ", ");
+		while (path.length() < 3) {
+			path = "0" + path;
+		}
+
+		String row = StringUtil.getStringInsidePatterns(summaryValue, "Row: ", "");
+		while (row.length() < 3) {
+			row = "0" + row;
+		}
+
+		return path + row;
+	}
+    
 }

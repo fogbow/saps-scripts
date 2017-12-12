@@ -38,7 +38,8 @@ public class USGSController {
 		properties = loadProperties();
 		setUsgsRepository(new USGSNasaRepository(pathStorage, pathMetadata, properties));
 		usgsRepository.handleAPIKeyUpdate();
-		setImageTask(new ImageTask(dataSet, region, date));
+		String imageName = getImageName(dataSet, region, date);
+		setImageTask(new ImageTask(imageName, dataSet, region, date));
 		imageTask.setDownloadLink(usgsRepository.getImageDownloadLink(imageTask.getName()));
 	}
 
@@ -75,7 +76,7 @@ public class USGSController {
 
 	public void saveMetadata() {
 		LOGGER.info("Starting to generate metadata file");
-		
+
 		String resultsDirPath = properties.getProperty(PropertiesConstants.SAPS_RESULTS_PATH);
 		String metadataFilePath = properties.getProperty(PropertiesConstants.SAPS_METADATA_PATH)
 				+ File.separator + "inputDescription.txt";
@@ -90,6 +91,20 @@ public class USGSController {
 			LOGGER.error("Error while writing metadata file", e);
 			System.exit(7);
 		}
+	}
+
+	public String getImageName(String dataSet, String region, String date) {
+		String imageName = null;
+		try {
+			imageName = this.usgsRepository.getImageName(dataSet, date, region);
+		} catch (Exception e) {
+			/**
+			 * Tried to make download but a Malformed URL was given
+			 */
+			LOGGER.error("Not found the Image in the USGS Repository", e);
+			System.exit(3);
+		}
+		return imageName;
 	}
 
 	public USGSNasaRepository getUsgsRepository() {
