@@ -593,6 +593,7 @@ public class USGSNasaRepository implements Repository {
     
 	public String getImageName(String dataset, String date, String region) throws Exception {
 		int imageYear = Integer.parseInt(date.substring(0, 4));
+		
 		JSONArray availableImages = this.getAvailableImagesInRange(dataset, imageYear, imageYear,
 				region);
 

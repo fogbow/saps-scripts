@@ -2,6 +2,9 @@ package model;
 
 import java.io.Serializable;
 
+import utils.PropertiesConstants;
+
+@SuppressWarnings("serial")
 public class ImageTask implements Serializable {
 
     private String name;
@@ -60,7 +63,6 @@ public class ImageTask implements Serializable {
     public void setDate(String date) {
         this.date = date;
     }
-
 
     public String formatedToString() {
 

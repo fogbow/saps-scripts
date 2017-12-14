@@ -74,7 +74,7 @@ public class PropertiesConstants {
 
 	// Properties file constants
 	public static final String POSSIBLE_STATIONS_FILE_PATH = "src/main/resources/possible_stations";
-	public static final String TILES_COORDINATES_FILE_PATH = "src/main/resources/WRScornerPoints.csv";
+	public static final String TILES_COORDINATES_FILE_PATH = "config/WRScornerPoints.csv";
 	public static final String GET_STATIONS_SCRIPT_PATH = "/home/ubuntu/get-station-data.sh";
 
 	public static final String SAPS_RESULTS_PATH = "sebal_results_local_path";

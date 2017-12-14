@@ -38,8 +38,9 @@ public class USGSController {
 		properties = loadProperties();
 		setUsgsRepository(new USGSNasaRepository(pathStorage, pathMetadata, properties));
 		usgsRepository.handleAPIKeyUpdate();
-		String imageName = getImageName(dataSet, region, date);
-		setImageTask(new ImageTask(imageName, dataSet, region, date));
+		String parsedDataset = formatDataSet(dataSet);
+		String imageName = getImageName(parsedDataset, region, date);
+		setImageTask(new ImageTask(imageName, parsedDataset, region, date));
 		imageTask.setDownloadLink(usgsRepository.getImageDownloadLink(imageTask.getName()));
 	}
 
@@ -105,6 +106,16 @@ public class USGSController {
 			System.exit(3);
 		}
 		return imageName;
+	}
+	
+	private String formatDataSet(String dataset) {
+		if (dataset.equals(PropertiesConstants.DATASET_LT5_TYPE)) {
+			return PropertiesConstants.LANDSAT_5_DATASET;
+		} else if (dataset.equals(PropertiesConstants.DATASET_LE7_TYPE)) {
+			return PropertiesConstants.LANDSAT_7_DATASET;
+		} else {
+			return PropertiesConstants.LANDSAT_8_DATASET;
+		}
 	}
 
 	public USGSNasaRepository getUsgsRepository() {
