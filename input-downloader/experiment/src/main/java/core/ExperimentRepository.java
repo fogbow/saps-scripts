@@ -50,8 +50,8 @@ public class ExperimentRepository implements Repository {
             }
             unpackTargz(localImageFilePath);
             localImageFile.delete();
-            String collectionTierName = getCollectionTierName();
-            runGetStationData(collectionTierName, sapsResultsPath);
+//            String collectionTierName = getCollectionTierName();
+//            runGetStationData(collectionTierName, sapsResultsPath);
         } else {
             throw new IOException("An error occurred while creating " + sapsResultsPath + " directory");
         }

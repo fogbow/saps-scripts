@@ -19,7 +19,7 @@ public class USGSController {
 
 	private static final Logger LOGGER = Logger.getLogger(USGSController.class);
 
-	private static final String IMAGE_NAME = "LC08_L1TP_215065_20170815_20170825_01_T1";
+	private static final String IMAGE_NAME = "LT05_L1TP_215066_19921114_20170121_01_T1";
 	private static final String REPO_URL = "http://www2.lsd.ufcg.edu.br/~lucas.farias/";
 
 	private Repository repository;
