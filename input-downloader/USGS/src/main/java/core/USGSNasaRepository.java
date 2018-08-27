@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,8 +75,8 @@ public class USGSNasaRepository implements Repository {
 			Properties properties) {
         this(sapsResultsPath, sapsMetadataPath,
 				properties.getProperty(PropertiesConstants.USGS_JSON_URL),
-				properties.getProperty(PropertiesConstants.USGS_USERNAME),
-				properties.getProperty(PropertiesConstants.USGS_PASSWORD),
+				System.getenv().get("USGS_USERNAME"),
+				System.getenv().get("USGS_PASSWORD"),
                 properties);
     }
 
