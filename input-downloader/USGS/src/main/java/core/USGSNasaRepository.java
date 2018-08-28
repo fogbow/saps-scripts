@@ -84,10 +84,10 @@ public class USGSNasaRepository implements Repository {
 			String usgsJsonUrl, String usgsUserName, String usgsPassword, Properties properties) {
 
         Validate.notNull(usgsJsonUrl, "usgsJsonUrl cannot be null");
-        Validate.notNull(usgsUserName, "usgsUserName cannot be null");
+        Validate.notNull(usgsUserName, "USGS_USERNAME must be a environment variable");
         Validate.notNull(sapsResultsPath, "sebalResultsPath cannot be null");
         Validate.notNull(sapsMetadataPath, "sebalMetadataPath cannot be null");
-        Validate.notNull(usgsPassword, "usgsPassword cannot be null");
+        Validate.notNull(usgsPassword, "USGS_PASSWORD must be a environment variable");
 
         this.sapsResultsPath = sapsResultsPath;
         this.usgsJsonUrl = usgsJsonUrl;
