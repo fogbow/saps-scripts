@@ -2,7 +2,7 @@
 Its purpose is to download the input data, including the Landsat image and other information useful for processing, e.g., station data.
 
 # Parameters
-The template used by the Inputdownloader component requires a `run.sh` script that receives the following information:
+The template used by the Inputdownloader requires a `run.sh` script that receives the following information:
 - `Dataset` is landsat collection to which the image belongs. For instance:
   - TM - Landsat 5
   - ETM - Landsat 7
@@ -22,14 +22,14 @@ This data is passed as a parameter to the `run.sh` script that will accomplish i
 # Usage
 The `run.sh` script will receive the default parameters below:
 ```
-./run.sh landsat_X PPPRRR YYYY-MM-DD output_path / home / ubuntu / metadata
+./run.sh landsat_X PPPRRR YYYY-MM-DD output_path metadata_path
 ```
 At where:
 - `landsat_X` is the dataset that can come from the 3 possible values: landsat_5, landsat_7 and landsat_8.
 - `PPPRRR` is the path / row of the image, in which, PPP is the path (with 3 digits) and RRR is the row (with 3 digits).
 - `YYYY-MM-DD` is the date of the image, where YYYY is the year (with 4 digits), MM is the month (with 2 digits) and DD is the day (with 2 digits).
-- `output_path` is the output directory path of the inputdownloader
-- `metadata_path` is the path of the metadata directory of the inputdownloader
+- `output_path` is the output directory path of the Inputdownloader.
+- `metadata_path` is the path of the metadata directory of the Inputdownloader.
 
 # Exit code
 The `run.sh` script should have the following return pattern:
